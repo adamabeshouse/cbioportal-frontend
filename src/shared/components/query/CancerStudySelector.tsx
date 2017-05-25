@@ -16,6 +16,7 @@ import SectionHeader from "../sectionHeader/SectionHeader";
 import {Modal} from 'react-bootstrap';
 import Autosuggest from 'react-bootstrap-autosuggest'
 import ReactElement = React.ReactElement;
+import DefaultTooltip from "../DefaultTooltip";
 
 const styles = styles_any as {
 	SelectedStudiesWindow: string,
@@ -43,6 +44,7 @@ const styles = styles_any as {
 	cancerTypeListItemLabel: string,
 	cancerTypeListItemCount: string,
 	cancerStudyListContainer: string,
+	submit:string,
 };
 
 export interface ICancerStudySelectorProps
@@ -53,6 +55,12 @@ export interface ICancerStudySelectorProps
 @observer
 export default class CancerStudySelector extends QueryStoreComponent<ICancerStudySelectorProps, void>
 {
+	private handlers = {
+		onSummaryClick:()=>{
+			this.store.openSummary();
+		}
+	};
+
 	constructor(props: ICancerStudySelectorProps)
 	{
 		super(props);
@@ -158,6 +166,28 @@ export default class CancerStudySelector extends QueryStoreComponent<ICancerStud
 									<a onClick={() => this.logic.mainView.onCheck(this.store.treeData.rootCancerType, !selectAllChecked)}>
 										{selectAllChecked ? "Deselect all" : "Select all"}
 									</a>
+								);
+							}}
+						</Observer>
+					)}
+
+					{!!(!this.store.cancerTypes.isPending && !this.store.cancerStudies.isPending) && (
+						<Observer>
+							{() => {
+								return (
+									<DefaultTooltip
+										placement="top"
+										overlay={<span>Open summary of selected studies in a new window.</span>}
+										disabled={!this.store.summaryEnabled}
+									>
+										<button disabled={!this.store.summaryEnabled}
+												className={classNames('btn-primary btn btn-xs', styles.submit)}
+												style={{marginLeft:10}}
+												onClick={this.handlers.onSummaryClick}
+										>
+											Summary
+										</button>
+									</DefaultTooltip>
 								);
 							}}
 						</Observer>
