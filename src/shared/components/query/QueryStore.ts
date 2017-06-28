@@ -192,7 +192,7 @@ export class QueryStore
 			if (!this.temporaryVirtualCohortId.result) {
 				return undefined;
 			}
-			const virtualCohortData:Response = await request.get(`http://${getHost()}/api-legacy/proxy/virtual-cohort/${this.temporaryVirtualCohortId.result}`);
+			const virtualCohortData:Response = await request.get(`http://${getHost()}/api-legacy/proxy/session-service/virtual_cohort/${this.temporaryVirtualCohortId.result}`);
 			const virtualCohortJSON = JSON.parse(virtualCohortData.text);
 			const name:string = virtualCohortJSON.data.studyName as string;
 			const description:string = virtualCohortJSON.data.description as string;
