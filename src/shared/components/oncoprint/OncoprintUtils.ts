@@ -5,7 +5,7 @@ import {
     IGeneHeatmapTrackDatum,
     IGeneHeatmapTrackSpec,
     IGenesetHeatmapTrackDatum,
-    IGenesetHeatmapTrackSpec,
+    IGenesetHeatmapTrackSpec
 } from "./Oncoprint";
 import {
     genetic_rule_set_same_color_for_all_no_recurrence,
@@ -14,34 +14,20 @@ import {
     genetic_rule_set_different_colors_recurrence, germline_rule_params
 } from "./geneticrules";
 import {OncoprintPatientGeneticTrackData, OncoprintSampleGeneticTrackData} from "../../lib/QuerySession";
-import {
-    AlterationTypeConstants,
-    AnnotatedExtendedAlteration,
-    AnnotatedMutation, CaseAggregatedData, ExtendedAlteration,
-    ResultsViewPageStore
-} from "../../../pages/resultsView/ResultsViewPageStore";
+import {AnnotatedExtendedAlteration, CaseAggregatedData} from "../../../pages/resultsView/ResultsViewPageStore";
 import {CoverageInformation} from "../../../pages/resultsView/ResultsViewPageStoreUtils";
 import {remoteData} from "../../api/remoteData";
-import {
-    makeClinicalTrackData,
-    makeGeneticTrackData,
-    makeHeatmapTrackData
-} from "./DataUtils";
+import {makeClinicalTrackData, makeGeneticTrackData, makeHeatmapTrackData} from "./DataUtils";
 import ResultsViewOncoprint from "./ResultsViewOncoprint";
 import _ from "lodash";
-import {action, runInAction, ObservableMap, IObservableArray} from "mobx";
+import {action, IObservableArray, ObservableMap, runInAction} from "mobx";
 import {MobxPromise} from "mobxpromise";
 import GenesetCorrelatedGeneCache from "shared/cache/GenesetCorrelatedGeneCache";
-import Spec = Mocha.reporters.Spec;
-import {UnflattenedOQLLineFilterOutput, isMergedTrackFilter} from "../../lib/oql/oqlfilter";
-import {
-    ClinicalAttribute,
-    MolecularProfile,
-    Patient,
-    Sample
-} from "../../api/generated/CBioPortalAPI";
+import {isMergedTrackFilter, UnflattenedOQLLineFilterOutput} from "../../lib/oql/oqlfilter";
+import {ClinicalAttribute, MolecularProfile, Patient, Sample} from "../../api/generated/CBioPortalAPI";
 import {clinicalAttributeIsPROFILEDIN, SpecialAttribute} from "../../cache/OncoprintClinicalDataCache";
 import {STUDY_VIEW_CONFIG} from "../../../pages/studyView/StudyViewConfig";
+import {getDefaultDataMergeStrategy, makeSTPMergeStrategyCustomOptions} from "./ResultsViewOncoprintUtils";
 
 interface IGenesetExpansionMap {
         [genesetTrackKey: string]: IGeneHeatmapTrackSpec[];
@@ -509,8 +495,10 @@ export function makeClinicalTracksMobxPromise(oncoprint:ResultsViewOncoprint, sa
                 if (oncoprint.onlyShowClinicalLegendForAlteredCases) {
                     altered_uids = oncoprint.alteredKeys.result!;
                 }
+                const key = oncoprint.clinicalAttributeIdToTrackKey(attribute.clinicalAttributeId);
+                const mergeStrategy = oncoprint.props.store.getOncoprintDataMergeStrategy(key, getDefaultDataMergeStrategy(attribute));
                 const ret:Partial<ClinicalTrackSpec> = {
-                    key: oncoprint.clinicalAttributeIdToTrackKey(attribute.clinicalAttributeId),
+                    key,
                     label: attribute.displayName,
                     description: attribute.description,
                     data:makeClinicalTrackData(
@@ -518,7 +506,8 @@ export function makeClinicalTracksMobxPromise(oncoprint:ResultsViewOncoprint, sa
                         sampleMode ? oncoprint.props.store.samples.result! : oncoprint.props.store.patients.result!,
                         data
                     ),
-                    altered_uids
+                    altered_uids,
+                    custom_options: sampleMode ? [] : makeSTPMergeStrategyCustomOptions(oncoprint.props.store, key, mergeStrategy)
                 };
                 if (clinicalAttributeIsPROFILEDIN(attribute)) {
                     // "Profiled-In" clinical attribute: show "No" on N/A items
@@ -532,10 +521,11 @@ export function makeClinicalTracksMobxPromise(oncoprint:ResultsViewOncoprint, sa
                         (ret as any).numberLogScale = true;
                     } else if (attribute.clinicalAttributeId === SpecialAttribute.NumSamplesPerPatient) {
                         (ret as any).numberRange = [0,undefined];
-                        ret.custom_options =
+                        ret.custom_options = ret.custom_options!.concat([{ separator:true }]).concat(
                             sampleMode ?
                                 [{ label: "Show one column per patient.", onClick:()=>oncoprint.controlsHandlers.onSelectColumnType("patient")}] :
-                                [{ label: "Show one column per sample.", onClick:()=>oncoprint.controlsHandlers.onSelectColumnType("sample")}];
+                                [{ label: "Show one column per sample.", onClick:()=>oncoprint.controlsHandlers.onSelectColumnType("sample")}]
+                        );
                     }
                 } else if (attribute.datatype === "STRING") {
                     ret.datatype = "string";

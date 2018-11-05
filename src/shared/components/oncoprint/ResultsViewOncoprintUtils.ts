@@ -4,7 +4,8 @@ import {OncoprintClinicalAttribute} from "./ResultsViewOncoprint";
 import {SpecialAttribute} from "../../cache/OncoprintClinicalDataCache";
 import _ from "lodash";
 import naturalSort from "javascript-natural-sort";
-import {AlterationTypeConstants} from "../../../pages/resultsView/ResultsViewPageStore";
+import {ResultsViewPageStore} from "../../../pages/resultsView/ResultsViewPageStore";
+import {CustomTrackOption} from "oncoprintjs";
 
 export const alterationTypeToProfiledForText:{[alterationType:string]:string} = {
     "MUTATION_EXTENDED": "mutations",
@@ -12,6 +13,48 @@ export const alterationTypeToProfiledForText:{[alterationType:string]:string} = 
     "MRNA_EXPRESSION": "mRNA expression",
     "PROTEIN_LEVEL": "protein expression"
 };
+
+export enum SampleToPatientMergeStrategy {
+    AVERAGE = "AVERAGE",
+    MIN = "MIN",
+    MAX = "MAX",
+    MEDIAN = "MEDIAN"
+};
+
+export function makeSTPMergeStrategyCustomOptions(
+    store:ResultsViewPageStore,
+    trackKey:string,
+    selectedOption:SampleToPatientMergeStrategy
+):CustomTrackOption[] {
+    return [
+    {
+        separator: true
+    },
+    {
+        label: "Merge sample data per patient by:",
+    },{
+        label: "Average",
+        onClick:()=>store.setOncoprintDataMergeStrategy(trackKey, SampleToPatientMergeStrategy.AVERAGE),
+        weight:selectedOption === SampleToPatientMergeStrategy.AVERAGE ? "bold" : "normal"
+    },{
+        label: "Minimum",
+        onClick:()=>store.setOncoprintDataMergeStrategy(trackKey, SampleToPatientMergeStrategy.MIN),
+        weight:selectedOption === SampleToPatientMergeStrategy.MIN ? "bold" : "normal"
+    },{
+        label: "Maximum",
+        onClick:()=>store.setOncoprintDataMergeStrategy(trackKey, SampleToPatientMergeStrategy.MAX),
+        weight:selectedOption === SampleToPatientMergeStrategy.MAX ? "bold" : "normal"
+    },{
+        label: "Median",
+        onClick:()=>store.setOncoprintDataMergeStrategy(trackKey, SampleToPatientMergeStrategy.MEDIAN),
+        weight:selectedOption === SampleToPatientMergeStrategy.MEDIAN ? "bold" : "normal"
+    }];
+}
+
+export function getDefaultDataMergeStrategy(attribute:ClinicalAttribute) {
+    // TODO: discrimiante?
+    return SampleToPatientMergeStrategy.AVERAGE;
+}
 
 export function getAnnotatingProgressMessage(usingOncokb:boolean, usingHotspot:boolean) {
     if (usingOncokb && usingHotspot) {

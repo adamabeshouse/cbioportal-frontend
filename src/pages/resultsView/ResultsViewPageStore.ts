@@ -134,6 +134,7 @@ import {filterAndSortProfiles} from "./coExpression/CoExpressionTabUtils";
 import {isRecurrentHotspot} from "../../shared/lib/AnnotationUtils";
 import {makeProfiledInClinicalAttributes} from "../../shared/components/oncoprint/ResultsViewOncoprintUtils";
 import {ResultsViewQuery} from "./ResultsViewQuery";
+import {SampleToPatientMergeStrategy} from "../../shared/components/oncoprint/ResultsViewOncoprintUtils";
 
 type Optional<T> = (
     {isApplicable: true, value: T}
@@ -410,6 +411,14 @@ export class ResultsViewPageStore {
     @observable expressionTabSeqVersion: number = 2;
 
     public mutationAnnotationSettings:MutationAnnotationSettings;
+    private oncoprintTrackKeyToMergeStrategy = observable.map<SampleToPatientMergeStrategy>();
+
+    public getOncoprintDataMergeStrategy(trackKey:string, _default:SampleToPatientMergeStrategy = SampleToPatientMergeStrategy.AVERAGE) {
+        return this.oncoprintTrackKeyToMergeStrategy.get(trackKey) || _default;
+    }
+    public setOncoprintDataMergeStrategy(trackKey:string, strat:SampleToPatientMergeStrategy) {
+        this.oncoprintTrackKeyToMergeStrategy.set(trackKey, strat);
+    }
 
     @observable.ref public _selectedEnrichmentMutationProfile: MolecularProfile;
     @observable.ref public _selectedEnrichmentCopyNumberProfile: MolecularProfile;
