@@ -19,6 +19,7 @@ import {
 } from '../../../pages/resultsView/ResultsViewPageStore';
 import './styles.scss';
 import { ShapeParams } from 'oncoprintjs/dist/js/oncoprintshape';
+import { AdvancedShowAndSortSettings } from 'shared/components/oncoprint/SortUtils';
 
 export type ClinicalTrackDatum = {
     attr_id: string;
@@ -220,6 +221,9 @@ export interface IOncoprintProps {
         sortByMutationType?: boolean;
         sortByDrivers?: boolean;
     };
+
+    advancedShowAndSortSettings?: AdvancedShowAndSortSettings;
+
     showClinicalTrackLegends?: boolean;
     showWhitespaceBetweenColumns?: boolean;
     showMinimap?: boolean;

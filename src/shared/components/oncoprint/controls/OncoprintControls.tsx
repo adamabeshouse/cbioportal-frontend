@@ -99,6 +99,8 @@ export interface IOncoprintControlsHandlers {
     onSetHorzZoom: (z: number) => void;
     onClickZoomIn: () => void;
     onClickZoomOut: () => void;
+
+    onClickShowAdvancedSettings?: () => void;
 }
 export interface IOncoprintControlsState {
     showUnalteredColumns: boolean;
@@ -1033,6 +1035,22 @@ export default class OncoprintControls extends React.Component<
                             />{' '}
                             Sort by data
                         </label>
+                        {this.props.handlers.onClickShowAdvancedSettings && (
+                            <button
+                                className="btn btn-xs btn-link"
+                                style={{
+                                    width: 'auto',
+                                    marginBottom: 0,
+                                    marginLeft: 15,
+                                }}
+                                onClick={
+                                    this.props.handlers
+                                        .onClickShowAdvancedSettings
+                                }
+                            >
+                                Show advanced settings
+                            </button>
+                        )}
                     </div>
                     <div style={{ marginLeft: '10px' }}>
                         <div className="checkbox">
@@ -1236,7 +1254,22 @@ export default class OncoprintControls extends React.Component<
                 id="mutationColorDropdown"
             >
                 <div className="oncoprint__controls__mutation_color_menu">
-                    <h5>Color by</h5>
+                    <h5 style={{ display: 'inline-block' }}>Color by</h5>
+                    {this.props.handlers.onClickShowAdvancedSettings && (
+                        <button
+                            className="btn btn-xs btn-link"
+                            style={{
+                                width: 'auto',
+                                marginBottom: 0,
+                                marginLeft: 15,
+                            }}
+                            onClick={
+                                this.props.handlers.onClickShowAdvancedSettings
+                            }
+                        >
+                            Show advanced settings
+                        </button>
+                    )}
                     <div style={{ marginLeft: '10px' }}>
                         <div className="checkbox">
                             <label>

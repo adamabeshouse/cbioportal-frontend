@@ -1028,6 +1028,7 @@ function transitionGeneticTrack(
             track_label_color: nextSpec.labelColor || undefined,
             target_group: GENETIC_TRACK_GROUP_INDEX,
             sortCmpFn: getGeneticTrackSortComparator(
+                nextProps.advancedShowAndSortSettings,
                 sortByMutationType(nextProps),
                 sortByDrivers(nextProps)
             ),
@@ -1070,12 +1071,17 @@ function transitionGeneticTrack(
         const nextSortByMutationType = sortByMutationType(nextProps);
         const nextSortByDrivers = sortByDrivers(nextProps);
         if (
+            !_.isEqual(
+                nextProps.advancedShowAndSortSettings,
+                prevProps.advancedShowAndSortSettings
+            ) ||
             nextSortByMutationType !== sortByMutationType(prevProps) ||
             nextSortByDrivers !== sortByDrivers(prevProps)
         ) {
             oncoprint.setTrackSortComparator(
                 trackId,
                 getGeneticTrackSortComparator(
+                    nextProps.advancedShowAndSortSettings,
                     nextSortByMutationType,
                     nextSortByDrivers
                 )

@@ -43,67 +43,67 @@ export const DefaultAdvancedShowAndSortSettings: AdvancedShowAndSortSettings = {
     },
     [AdvancedShowAndSortSettingsType.AMP]: {
         show: true,
-        sortBy: 2.1,
+        sortBy: 2,
     },
     [AdvancedShowAndSortSettingsType.DEL]: {
         show: true,
-        sortBy: 2.2,
+        sortBy: 3,
     },
     [AdvancedShowAndSortSettingsType.GAIN]: {
         show: true,
-        sortBy: 2.3,
+        sortBy: 4,
     },
     [AdvancedShowAndSortSettingsType.HETLOSS]: {
         show: true,
-        sortBy: 2.4,
+        sortBy: 5,
     },
     [AdvancedShowAndSortSettingsType.DRIVER_MUTATION]: {
         show: true,
-        sortBy: 3.0,
+        sortBy: 6,
     },
     [AdvancedShowAndSortSettingsType.MUTATED]: {
         show: true,
-        sortBy: 3.1,
+        sortBy: 7,
     },
     [AdvancedShowAndSortSettingsType.TRUNCATING]: {
         show: true,
-        sortBy: 3.1,
+        sortBy: 8,
     },
     [AdvancedShowAndSortSettingsType.INFRAME]: {
         show: true,
-        sortBy: 3.2,
+        sortBy: 9,
     },
     [AdvancedShowAndSortSettingsType.PROMOTER]: {
         show: true,
-        sortBy: 3.3,
+        sortBy: 10,
     },
     [AdvancedShowAndSortSettingsType.MISSENSE]: {
         show: true,
-        sortBy: 3.4,
+        sortBy: 11,
     },
     [AdvancedShowAndSortSettingsType.OTHER_MUTATION]: {
         show: true,
-        sortBy: 3.5,
+        sortBy: 12,
     },
     [AdvancedShowAndSortSettingsType.GERMLINE]: {
         show: true,
-        sortBy: 4,
+        sortBy: 13,
     },
     [AdvancedShowAndSortSettingsType.MRNA_HIGH]: {
         show: true,
-        sortBy: 5.1,
+        sortBy: 14,
     },
     [AdvancedShowAndSortSettingsType.MRNA_LOW]: {
         show: true,
-        sortBy: 5.2,
+        sortBy: 15,
     },
     [AdvancedShowAndSortSettingsType.PROTEIN_HIGH]: {
         show: true,
-        sortBy: 6.1,
+        sortBy: 16,
     },
     [AdvancedShowAndSortSettingsType.PROTEIN_LOW]: {
         show: true,
-        sortBy: 6.2,
+        sortBy: 17,
     },
 };
 
@@ -123,6 +123,7 @@ function sign(x: number): 0 | -1 | 1 {
 }
 
 export function getGeneticTrackSortComparator(
+    settings: AdvancedShowAndSortSettings = DefaultAdvancedShowAndSortSettings,
     sortByMutationType?: boolean,
     sortByDrivers?: boolean
 ): {
@@ -130,7 +131,6 @@ export function getGeneticTrackSortComparator(
     mandatory: TrackSortVector<GeneticTrackDatum>;
     isVector: true;
 } {
-    const settings = DefaultAdvancedShowAndSortSettings;
     function mandatoryHelper(d: GeneticTrackDatum): number[] {
         // TODO: respect show and sortBy settings
 

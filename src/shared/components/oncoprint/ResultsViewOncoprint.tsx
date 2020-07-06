@@ -82,6 +82,11 @@ import {
     getOncoprinterGeneticInput,
 } from '../../../pages/staticPages/tools/oncoprinter/OncoprinterImportUtils';
 import { buildCBioPortalPageUrl } from '../../api/urls';
+import {
+    AdvancedShowAndSortSettings,
+    DefaultAdvancedShowAndSortSettings,
+} from 'shared/components/oncoprint/SortUtils';
+import AdvancedSettingsSelector from 'pages/resultsView/oncoprint/AdvancedSettingsSelector';
 
 interface IResultsViewOncoprintProps {
     divId: string;
@@ -131,6 +136,18 @@ export default class ResultsViewOncoprint extends React.Component<
     IResultsViewOncoprintProps,
     {}
 > {
+    @observable advancedSettings: AdvancedShowAndSortSettings = Object.assign(
+        {},
+        DefaultAdvancedShowAndSortSettings
+    );
+    @observable showAdvancedSettingsSelector = false;
+
+    @autobind
+    @action
+    private toggleAdvancedSettingsSelector() {
+        this.showAdvancedSettingsSelector = !this.showAdvancedSettingsSelector;
+    }
+
     @computed get columnMode() {
         debugger;
         return this.urlWrapper.query.show_samples === 'true'
@@ -621,6 +638,9 @@ export default class ResultsViewOncoprint extends React.Component<
 
     private buildControlsHandlers() {
         return {
+            onClickShowAdvancedSettings: () => {
+                this.showAdvancedSettingsSelector = true;
+            },
             onSelectColumnType: (type: OncoprintAnalysisCaseType) => {
                 this.props.store.setOncoprintAnalysisCaseType(type);
             },
@@ -1769,6 +1789,11 @@ export default class ResultsViewOncoprint extends React.Component<
                     <AlterationFilterWarning store={this.props.store} />
                 </div>
 
+                <AdvancedSettingsSelector
+                    settings={this.advancedSettings}
+                    show={this.showAdvancedSettingsSelector}
+                    onHide={this.toggleAdvancedSettingsSelector}
+                />
                 <div
                     className={classNames('oncoprintContainer', {
                         fadeIn: !this.isHidden,
