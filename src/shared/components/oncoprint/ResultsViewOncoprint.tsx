@@ -138,10 +138,7 @@ export default class ResultsViewOncoprint extends React.Component<
     {}
 > {
     @observable.ref
-    advancedSettings: AdvancedShowAndSortSettings = Object.assign(
-        {},
-        DefaultAdvancedShowAndSortSettings
-    );
+    advancedSettings: AdvancedShowAndSortSettings = DefaultAdvancedShowAndSortSettings.slice();
 
     @observable showAdvancedSettingsSelector = false;
 

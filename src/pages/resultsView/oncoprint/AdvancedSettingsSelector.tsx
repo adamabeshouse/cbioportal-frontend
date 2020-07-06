@@ -3,19 +3,22 @@ import { observer } from 'mobx-react';
 import {
     AdvancedShowAndSortSettings,
     AdvancedShowAndSortSettingsType,
+    DefaultAdvancedShowAndSortSettings,
+    getAdvancedSettingsWithSortBy,
 } from 'shared/components/oncoprint/SortUtils';
 import { Modal } from 'react-bootstrap';
 import SimpleTable from 'shared/components/simpleTable/SimpleTable';
 import _ from 'lodash';
-import { action, computed, observable } from 'mobx';
+import { action, computed, observable, toJS } from 'mobx';
 import autobind from 'autobind-decorator';
 import SimpleDraggableTable, {
     DragHandle,
     SortableTr,
 } from 'shared/components/simpleDraggableTable/SimpleDraggableTable';
+import { stringListToIndexSet } from 'cbioportal-frontend-commons';
 
 export interface IAdvancedOncoprintSettingsProps {
-    settings: Readonly<AdvancedShowAndSortSettings>;
+    settings: AdvancedShowAndSortSettings;
     show: boolean;
     onHide: () => void;
     updateSettings: (settings: AdvancedShowAndSortSettings) => void;
@@ -32,38 +35,65 @@ export default class AdvancedSettingsSelector extends React.Component<
     IAdvancedOncoprintSettingsProps,
     {}
 > {
-    @observable workingSettings: AdvancedShowAndSortSettings;
+    @observable.deep workingSettings: AdvancedShowAndSortSettings;
+
+    @computed get workingSettingsWithSortBy() {
+        if (this.workingSettings) {
+            return getAdvancedSettingsWithSortBy(this.workingSettings);
+        } else {
+            return [];
+        }
+    }
 
     @computed get rows() {
         if (!this.workingSettings) {
             return [];
         }
 
-        return _.sortBy(
-            _.entries(this.workingSettings),
-            entry => entry[1].sortBy
-        ).map((entry, index) => {
+        return this.workingSettings.map((setting, index) => {
             return {
-                uid: entry[0],
+                uid: setting.type,
                 tr: (
                     <SortableTr index={index}>
-                        <td style={{ width: 200 }}>{entry[0]}</td>
+                        <td style={{ width: 200 }}>{setting.type}</td>
                         <td style={{ width: 200 }}>
                             <input
                                 type="checkbox"
-                                checked={entry[1].show}
+                                checked={this.workingSettings[index].show}
                                 onClick={() => {
-                                    this.workingSettings[
-                                        entry[0] as AdvancedShowAndSortSettingsType
-                                    ].show = !this.workingSettings[
-                                        entry[0] as AdvancedShowAndSortSettingsType
-                                    ].show;
+                                    // setter can be called asynchronously so has to directly reference
+                                    //  the object or else it could reference a stale obj and become
+                                    //  unresponsive
+                                    this.workingSettings[index].show = !this
+                                        .workingSettings[index].show;
                                 }}
                             />
                         </td>
                         <td style={{ width: 200 }}>
                             <DragHandle />
-                            {entry[1].sortBy}
+                            {this.workingSettingsWithSortBy[index].sortBy}
+                            {index > 0 && (
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        checked={
+                                            this.workingSettings[index]
+                                                .sameSortPriorityAsPrevious
+                                        }
+                                        onClick={() => {
+                                            // setter can be called asynchronously so has to directly reference
+                                            //  the object or else it could reference a stale obj and become
+                                            //  unresponsive
+                                            this.workingSettings[
+                                                index
+                                            ].sameSortPriorityAsPrevious = !this
+                                                .workingSettings[index]
+                                                .sameSortPriorityAsPrevious;
+                                        }}
+                                    />
+                                    Same priority as above
+                                </label>
+                            )}
                         </td>
                     </SortableTr>
                 ),
@@ -73,22 +103,22 @@ export default class AdvancedSettingsSelector extends React.Component<
 
     @autobind
     private saveAndApply() {
-        this.props.updateSettings(this.workingSettings);
+        this.props.updateSettings(toJS(this.workingSettings));
     }
 
     @autobind
     private onShow() {
-        this.workingSettings = this.props.settings;
+        this.workingSettings = toJS(this.props.settings);
     }
 
     @autobind
     @action
     private onSort(uids: string[]) {
-        uids.forEach((uid, index) => {
-            this.workingSettings[
-                uid as AdvancedShowAndSortSettingsType
-            ].sortBy = index + 1; // 1-based indexes are more user-friendly
-        });
+        const indexes = stringListToIndexSet(uids);
+        this.workingSettings = _.sortBy(
+            this.workingSettings,
+            s => indexes[s.type]
+        );
     }
 
     public render() {
