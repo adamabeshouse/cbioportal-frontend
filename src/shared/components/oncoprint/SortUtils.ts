@@ -132,8 +132,6 @@ export function getGeneticTrackSortComparator(
     isVector: true;
 } {
     function mandatoryHelper(d: GeneticTrackDatum): number[] {
-        // TODO: respect show and sortBy settings
-
         const vector = [];
 
         // Create vector out of corresponding sort numbers,

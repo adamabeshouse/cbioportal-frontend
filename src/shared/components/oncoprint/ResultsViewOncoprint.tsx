@@ -6,6 +6,7 @@ import {
     IObservableObject,
     IReactionDisposer,
     observable,
+    toJS,
 } from 'mobx';
 import {
     capitalize,
@@ -136,16 +137,25 @@ export default class ResultsViewOncoprint extends React.Component<
     IResultsViewOncoprintProps,
     {}
 > {
-    @observable advancedSettings: AdvancedShowAndSortSettings = Object.assign(
+    @observable.ref
+    advancedSettings: AdvancedShowAndSortSettings = Object.assign(
         {},
         DefaultAdvancedShowAndSortSettings
     );
+
     @observable showAdvancedSettingsSelector = false;
 
     @autobind
     @action
     private toggleAdvancedSettingsSelector() {
         this.showAdvancedSettingsSelector = !this.showAdvancedSettingsSelector;
+    }
+
+    @autobind
+    @action
+    private updateAdvancedSettings(settings: AdvancedShowAndSortSettings) {
+        this.advancedSettings = settings;
+        this.showAdvancedSettingsSelector = false;
     }
 
     @computed get columnMode() {
@@ -1793,6 +1803,7 @@ export default class ResultsViewOncoprint extends React.Component<
                     settings={this.advancedSettings}
                     show={this.showAdvancedSettingsSelector}
                     onHide={this.toggleAdvancedSettingsSelector}
+                    updateSettings={this.updateAdvancedSettings}
                 />
                 <div
                     className={classNames('oncoprintContainer', {
@@ -1849,6 +1860,9 @@ export default class ResultsViewOncoprint extends React.Component<
                                     this.distinguishGermlineMutations
                                 }
                                 sortConfig={this.oncoprintLibrarySortConfig}
+                                advancedShowAndSortSettings={
+                                    this.advancedSettings
+                                }
                                 showClinicalTrackLegends={
                                     this.showClinicalTrackLegends
                                 }
