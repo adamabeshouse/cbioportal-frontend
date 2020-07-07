@@ -120,6 +120,7 @@ export function getGeneticTrackSortComparator(
         getAdvancedSettingsWithSortBy(settingsList),
         o => o.type
     );
+    const settingsType = AdvancedShowAndSortSettingsType;
 
     function mandatoryHelper(d: GeneticTrackDatum): number[] {
         const vector = [];
@@ -128,13 +129,8 @@ export function getGeneticTrackSortComparator(
         //  then return that vector sorted in ascending order.
 
         // Fusion
-        if (
-            d.disp_fusion &&
-            settingsMap[AdvancedShowAndSortSettingsType.FUSION].show
-        ) {
-            vector.push(
-                settingsMap[AdvancedShowAndSortSettingsType.FUSION].sortBy
-            );
+        if (d.disp_fusion && settingsMap[settingsType.FUSION].show) {
+            vector.push(settingsMap[settingsType.FUSION].sortBy);
         } else {
             vector.push(Number.POSITIVE_INFINITY);
         }
@@ -143,35 +139,26 @@ export function getGeneticTrackSortComparator(
         let cnaNumberAdded = false;
         switch (d.disp_cna) {
             case 'amp':
-                if (settingsMap[AdvancedShowAndSortSettingsType.AMP].show) {
-                    vector.push(
-                        settingsMap[AdvancedShowAndSortSettingsType.AMP].sortBy
-                    );
+                if (settingsMap[settingsType.AMP].show) {
+                    vector.push(settingsMap[settingsType.AMP].sortBy);
                     cnaNumberAdded = true;
                 }
                 break;
             case 'homdel':
-                if (settingsMap[AdvancedShowAndSortSettingsType.DEL].show) {
-                    vector.push(
-                        settingsMap[AdvancedShowAndSortSettingsType.DEL].sortBy
-                    );
+                if (settingsMap[settingsType.DEL].show) {
+                    vector.push(settingsMap[settingsType.DEL].sortBy);
                     cnaNumberAdded = true;
                 }
                 break;
             case 'gain':
-                if (settingsMap[AdvancedShowAndSortSettingsType.GAIN].show) {
-                    vector.push(
-                        settingsMap[AdvancedShowAndSortSettingsType.GAIN].sortBy
-                    );
+                if (settingsMap[settingsType.GAIN].show) {
+                    vector.push(settingsMap[settingsType.GAIN].sortBy);
                     cnaNumberAdded = true;
                 }
                 break;
             case 'hetloss':
-                if (settingsMap[AdvancedShowAndSortSettingsType.HETLOSS].show) {
-                    vector.push(
-                        settingsMap[AdvancedShowAndSortSettingsType.HETLOSS]
-                            .sortBy
-                    );
+                if (settingsMap[settingsType.HETLOSS].show) {
+                    vector.push(settingsMap[settingsType.HETLOSS].sortBy);
                     cnaNumberAdded = true;
                 }
                 break;
@@ -180,10 +167,7 @@ export function getGeneticTrackSortComparator(
             vector.push(Number.POSITIVE_INFINITY);
         }
 
-        if (
-            sortByDrivers &&
-            settingsMap[AdvancedShowAndSortSettingsType.DRIVER_MUTATION].show
-        ) {
+        if (sortByDrivers && settingsMap[settingsType.DRIVER_MUTATION].show) {
             // Driver mutations
             switch (d.disp_mut) {
                 case 'inframe_rec':
@@ -192,9 +176,7 @@ export function getGeneticTrackSortComparator(
                 case 'trunc_rec':
                 case 'other_rec':
                     vector.push(
-                        settingsMap[
-                            AdvancedShowAndSortSettingsType.DRIVER_MUTATION
-                        ].sortBy
+                        settingsMap[settingsType.DRIVER_MUTATION].sortBy
                     );
                     break;
                 default:
@@ -208,70 +190,39 @@ export function getGeneticTrackSortComparator(
             switch (d.disp_mut) {
                 case 'inframe_rec':
                 case 'inframe':
-                    if (
-                        settingsMap[AdvancedShowAndSortSettingsType.INFRAME]
-                            .show
-                    ) {
-                        vector.push(
-                            settingsMap[AdvancedShowAndSortSettingsType.INFRAME]
-                                .sortBy
-                        );
+                    if (settingsMap[settingsType.INFRAME].show) {
+                        vector.push(settingsMap[settingsType.INFRAME].sortBy);
                         numberAdded = true;
                     }
                     break;
                 case 'missense_rec':
                 case 'missense':
-                    if (
-                        settingsMap[AdvancedShowAndSortSettingsType.MISSENSE]
-                            .show
-                    ) {
-                        vector.push(
-                            settingsMap[
-                                AdvancedShowAndSortSettingsType.MISSENSE
-                            ].sortBy
-                        );
+                    if (settingsMap[settingsType.MISSENSE].show) {
+                        vector.push(settingsMap[settingsType.MISSENSE].sortBy);
                         numberAdded = true;
                     }
                     break;
                 case 'promoter_rec':
                 case 'promoter':
-                    if (
-                        settingsMap[AdvancedShowAndSortSettingsType.PROMOTER]
-                            .show
-                    ) {
-                        vector.push(
-                            settingsMap[
-                                AdvancedShowAndSortSettingsType.PROMOTER
-                            ].sortBy
-                        );
+                    if (settingsMap[settingsType.PROMOTER].show) {
+                        vector.push(settingsMap[settingsType.PROMOTER].sortBy);
                         numberAdded = true;
                     }
                     break;
                 case 'trunc_rec':
                 case 'trunc':
-                    if (
-                        settingsMap[AdvancedShowAndSortSettingsType.TRUNCATING]
-                            .show
-                    ) {
+                    if (settingsMap[settingsType.TRUNCATING].show) {
                         vector.push(
-                            settingsMap[
-                                AdvancedShowAndSortSettingsType.TRUNCATING
-                            ].sortBy
+                            settingsMap[settingsType.TRUNCATING].sortBy
                         );
                         numberAdded = true;
                     }
                     break;
                 case 'other_rec':
                 case 'other':
-                    if (
-                        settingsMap[
-                            AdvancedShowAndSortSettingsType.OTHER_MUTATION
-                        ].show
-                    ) {
+                    if (settingsMap[settingsType.OTHER_MUTATION].show) {
                         vector.push(
-                            settingsMap[
-                                AdvancedShowAndSortSettingsType.OTHER_MUTATION
-                            ].sortBy
+                            settingsMap[settingsType.OTHER_MUTATION].sortBy
                         );
                         numberAdded = true;
                     }
@@ -281,26 +232,16 @@ export function getGeneticTrackSortComparator(
                 vector.push(Number.POSITIVE_INFINITY);
             }
         } else {
-            if (
-                d.disp_mut &&
-                settingsMap[AdvancedShowAndSortSettingsType.MUTATED].show
-            ) {
-                vector.push(
-                    settingsMap[AdvancedShowAndSortSettingsType.MUTATED].sortBy
-                );
+            if (d.disp_mut && settingsMap[settingsType.MUTATED].show) {
+                vector.push(settingsMap[settingsType.MUTATED].sortBy);
             } else {
                 vector.push(Number.POSITIVE_INFINITY);
             }
         }
 
         // Germline status
-        if (
-            d.disp_germ &&
-            settingsMap[AdvancedShowAndSortSettingsType.GERMLINE].show
-        ) {
-            vector.push(
-                settingsMap[AdvancedShowAndSortSettingsType.GERMLINE].sortBy
-            );
+        if (d.disp_germ && settingsMap[settingsType.GERMLINE].show) {
+            vector.push(settingsMap[settingsType.GERMLINE].sortBy);
         } else {
             vector.push(Number.POSITIVE_INFINITY);
         }
@@ -309,24 +250,14 @@ export function getGeneticTrackSortComparator(
         let mrnaNumberAdded = false;
         switch (d.disp_mrna) {
             case 'high':
-                if (
-                    settingsMap[AdvancedShowAndSortSettingsType.MRNA_HIGH].show
-                ) {
-                    vector.push(
-                        settingsMap[AdvancedShowAndSortSettingsType.MRNA_HIGH]
-                            .sortBy
-                    );
+                if (settingsMap[settingsType.MRNA_HIGH].show) {
+                    vector.push(settingsMap[settingsType.MRNA_HIGH].sortBy);
                     mrnaNumberAdded = true;
                 }
                 break;
             case 'low':
-                if (
-                    settingsMap[AdvancedShowAndSortSettingsType.MRNA_LOW].show
-                ) {
-                    vector.push(
-                        settingsMap[AdvancedShowAndSortSettingsType.MRNA_LOW]
-                            .sortBy
-                    );
+                if (settingsMap[settingsType.MRNA_LOW].show) {
+                    vector.push(settingsMap[settingsType.MRNA_LOW].sortBy);
                     mrnaNumberAdded = true;
                 }
                 break;
@@ -338,27 +269,14 @@ export function getGeneticTrackSortComparator(
         let protNumberAdded = false;
         switch (d.disp_prot) {
             case 'high':
-                if (
-                    settingsMap[AdvancedShowAndSortSettingsType.PROTEIN_HIGH]
-                        .show
-                ) {
-                    vector.push(
-                        settingsMap[
-                            AdvancedShowAndSortSettingsType.PROTEIN_HIGH
-                        ].sortBy
-                    );
+                if (settingsMap[settingsType.PROTEIN_HIGH].show) {
+                    vector.push(settingsMap[settingsType.PROTEIN_HIGH].sortBy);
                     protNumberAdded = true;
                 }
                 break;
             case 'low':
-                if (
-                    settingsMap[AdvancedShowAndSortSettingsType.PROTEIN_LOW]
-                        .show
-                ) {
-                    vector.push(
-                        settingsMap[AdvancedShowAndSortSettingsType.PROTEIN_LOW]
-                            .sortBy
-                    );
+                if (settingsMap[settingsType.PROTEIN_LOW].show) {
+                    vector.push(settingsMap[settingsType.PROTEIN_LOW].sortBy);
                     protNumberAdded = true;
                 }
                 break;
