@@ -33,95 +33,33 @@ export type AdvancedShowAndSortSettings = {
     type: AdvancedShowAndSortSettingsType;
     show: boolean;
     sameSortPriorityAsPrevious: boolean;
+    disableSort: boolean;
 }[];
 
 export const DefaultAdvancedShowAndSortSettings: AdvancedShowAndSortSettings = [
-    {
-        type: AdvancedShowAndSortSettingsType.FUSION,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.AMP,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.DEL,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.GAIN,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.HETLOSS,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.DRIVER_MUTATION,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.MUTATED,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.TRUNCATING,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.INFRAME,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.PROMOTER,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.MISSENSE,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.OTHER_MUTATION,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.GERMLINE,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.MRNA_HIGH,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.MRNA_LOW,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.PROTEIN_HIGH,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-    {
-        type: AdvancedShowAndSortSettingsType.PROTEIN_LOW,
-        show: true,
-        sameSortPriorityAsPrevious: false,
-    },
-];
+    AdvancedShowAndSortSettingsType.FUSION,
+    AdvancedShowAndSortSettingsType.AMP,
+    AdvancedShowAndSortSettingsType.DEL,
+    AdvancedShowAndSortSettingsType.GAIN,
+    AdvancedShowAndSortSettingsType.HETLOSS,
+    AdvancedShowAndSortSettingsType.DRIVER_MUTATION,
+    AdvancedShowAndSortSettingsType.MUTATED,
+    AdvancedShowAndSortSettingsType.TRUNCATING,
+    AdvancedShowAndSortSettingsType.INFRAME,
+    AdvancedShowAndSortSettingsType.PROMOTER,
+    AdvancedShowAndSortSettingsType.MISSENSE,
+    AdvancedShowAndSortSettingsType.OTHER_MUTATION,
+    AdvancedShowAndSortSettingsType.GERMLINE,
+    AdvancedShowAndSortSettingsType.MRNA_HIGH,
+    AdvancedShowAndSortSettingsType.MRNA_LOW,
+    AdvancedShowAndSortSettingsType.PROTEIN_HIGH,
+    AdvancedShowAndSortSettingsType.PROTEIN_LOW,
+].map(type => ({
+    type,
+    show: true,
+    sameSortPriorityAsPrevious: false,
+    disableSort: false,
+})); // default needs to have all those options in there in order for mobx to register them all for settings interface
 
 /**
  * Get sign of a number
@@ -142,17 +80,25 @@ export function getAdvancedSettingsWithSortBy(
     settings: AdvancedShowAndSortSettings
 ) {
     const settingsWithSortBy: (AdvancedShowAndSortSettings[0] & {
-        sortBy: number;
+        sortBy: number | null;
     })[] = [];
 
+    let previousPriority: number = 0; // this wont be used unless all the first rows have disableSort set to true
+
     settings.forEach((s, index) => {
-        let sortBy;
-        if (index === 0) {
+        let sortBy: number | null;
+        if (s.disableSort) {
+            sortBy = null;
+        } else if (index === 0) {
             sortBy = 1;
         } else if (s.sameSortPriorityAsPrevious) {
-            sortBy = settingsWithSortBy[index - 1].sortBy;
+            sortBy = previousPriority;
         } else {
-            sortBy = settingsWithSortBy[index - 1].sortBy + 1;
+            sortBy = previousPriority + 1;
+        }
+
+        if (sortBy !== null) {
+            previousPriority = sortBy;
         }
 
         settingsWithSortBy.push(Object.assign({}, s, { sortBy }));
@@ -421,7 +367,15 @@ export function getGeneticTrackSortComparator(
             vector.push(Number.POSITIVE_INFINITY);
         }
 
-        return _.sortBy(vector);
+        return _.sortBy(
+            vector.map(x => {
+                if (x === null) {
+                    return Number.POSITIVE_INFINITY;
+                } else {
+                    return x;
+                }
+            })
+        );
     }
 
     function mandatory(d: GeneticTrackDatum): number[] {

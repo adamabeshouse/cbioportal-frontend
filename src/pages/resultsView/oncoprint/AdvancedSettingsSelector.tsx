@@ -16,6 +16,7 @@ import SimpleDraggableTable, {
     SortableTr,
 } from 'shared/components/simpleDraggableTable/SimpleDraggableTable';
 import { stringListToIndexSet } from 'cbioportal-frontend-commons';
+import LabeledCheckbox from 'shared/components/labeledCheckbox/LabeledCheckbox';
 
 export interface IAdvancedOncoprintSettingsProps {
     settings: AdvancedShowAndSortSettings;
@@ -29,6 +30,18 @@ const headers = [
     <td>Show in Oncoprint?</td>,
     <td>Sort priority</td>,
 ];
+
+function findPreviousNonNullSortBy<T extends { sortBy: number | null }>(
+    settings: T[],
+    startIndex: number
+) {
+    for (let i = startIndex - 1; i >= 0; i--) {
+        if (settings[i].sortBy !== null) {
+            return settings[i];
+        }
+    }
+    return null;
+}
 
 @observer
 export default class AdvancedSettingsSelector extends React.Component<
@@ -51,49 +64,77 @@ export default class AdvancedSettingsSelector extends React.Component<
         }
 
         return this.workingSettings.map((setting, index) => {
+            const prevNonNull = findPreviousNonNullSortBy(
+                this.workingSettingsWithSortBy,
+                index
+            );
             return {
                 uid: setting.type,
                 tr: (
                     <SortableTr index={index}>
                         <td style={{ width: 200 }}>{setting.type}</td>
-                        <td style={{ width: 200 }}>
+                        <td style={{ width: 100 }}>
                             <input
                                 type="checkbox"
-                                checked={this.workingSettings[index].show}
+                                checked={setting.show}
                                 onClick={() => {
-                                    // setter can be called asynchronously so has to directly reference
-                                    //  the object or else it could reference a stale obj and become
-                                    //  unresponsive
-                                    this.workingSettings[index].show = !this
-                                        .workingSettings[index].show;
+                                    setting.show = !setting.show;
                                 }}
                             />
                         </td>
-                        <td style={{ width: 200 }}>
+                        <td style={{ width: 400 }}>
                             <DragHandle />
-                            {this.workingSettingsWithSortBy[index].sortBy}
-                            {index > 0 && (
-                                <label>
-                                    <input
-                                        type="checkbox"
+                            {this.workingSettingsWithSortBy[index].sortBy ===
+                            null
+                                ? '-'
+                                : this.workingSettingsWithSortBy[index].sortBy}
+                            <div
+                                style={{
+                                    display: 'inline-flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                }}
+                            >
+                                <LabeledCheckbox
+                                    checked={setting.disableSort}
+                                    onChange={() => {
+                                        // setter can be called asynchronously so has to directly reference
+                                        //  the object or else it could reference a stale obj and become
+                                        //  unresponsive
+                                        setting.disableSort = !setting.disableSort;
+                                    }}
+                                    labelProps={{
+                                        style: {
+                                            display: 'inline-flex',
+                                            marginLeft: 10,
+                                        },
+                                    }}
+                                >
+                                    Don't sort by {setting.type}
+                                </LabeledCheckbox>
+
+                                {prevNonNull !== null && (
+                                    <LabeledCheckbox
                                         checked={
-                                            this.workingSettings[index]
-                                                .sameSortPriorityAsPrevious
+                                            setting.sameSortPriorityAsPrevious
                                         }
-                                        onClick={() => {
+                                        onChange={() => {
                                             // setter can be called asynchronously so has to directly reference
                                             //  the object or else it could reference a stale obj and become
                                             //  unresponsive
-                                            this.workingSettings[
-                                                index
-                                            ].sameSortPriorityAsPrevious = !this
-                                                .workingSettings[index]
-                                                .sameSortPriorityAsPrevious;
+                                            setting.sameSortPriorityAsPrevious = !setting.sameSortPriorityAsPrevious;
                                         }}
-                                    />
-                                    Same priority as above
-                                </label>
-                            )}
+                                        labelProps={{
+                                            style: {
+                                                display: 'inline-flex',
+                                                marginLeft: 10,
+                                            },
+                                        }}
+                                    >
+                                        Same priority as {prevNonNull.type}
+                                    </LabeledCheckbox>
+                                )}
+                            </div>
                         </td>
                     </SortableTr>
                 ),
