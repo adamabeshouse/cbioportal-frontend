@@ -87,7 +87,7 @@ export function getAdvancedSettingsWithSortBy(
 
     settings.forEach((s, index) => {
         let sortBy: number | null;
-        if (s.disableSort) {
+        if (s.disableSort || !s.show) {
             sortBy = null;
         } else if (index === 0) {
             sortBy = 1;

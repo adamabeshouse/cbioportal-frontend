@@ -2,12 +2,9 @@ import * as React from 'react';
 import { observer } from 'mobx-react';
 import {
     AdvancedShowAndSortSettings,
-    AdvancedShowAndSortSettingsType,
-    DefaultAdvancedShowAndSortSettings,
     getAdvancedSettingsWithSortBy,
 } from 'shared/components/oncoprint/SortUtils';
 import { Modal } from 'react-bootstrap';
-import SimpleTable from 'shared/components/simpleTable/SimpleTable';
 import _ from 'lodash';
 import { action, computed, observable, toJS } from 'mobx';
 import autobind from 'autobind-decorator';
@@ -27,7 +24,8 @@ export interface IAdvancedOncoprintSettingsProps {
 
 const headers = [
     <td>Alteration Type</td>,
-    <td>Show in Oncoprint?</td>,
+    <td>Show?</td>,
+    <td>Sort?</td>,
     <td>Sort priority</td>,
 ];
 
@@ -82,59 +80,37 @@ export default class AdvancedSettingsSelector extends React.Component<
                                 }}
                             />
                         </td>
-                        <td style={{ width: 400 }}>
+                        <td style={{ width: 100 }}>
+                            <input
+                                type="checkbox"
+                                checked={!setting.disableSort}
+                                onClick={() => {
+                                    setting.disableSort = !setting.disableSort;
+                                }}
+                            />
+                        </td>
+                        <td style={{ width: 350 }}>
                             <DragHandle />
-                            {this.workingSettingsWithSortBy[index].sortBy ===
-                            null
+                            {setting.disableSort
                                 ? '-'
                                 : this.workingSettingsWithSortBy[index].sortBy}
-                            <div
-                                style={{
-                                    display: 'inline-flex',
-                                    flexDirection: 'column',
-                                    justifyContent: 'center',
-                                }}
-                            >
+                            {prevNonNull !== null && !setting.disableSort && (
                                 <LabeledCheckbox
-                                    checked={setting.disableSort}
+                                    checked={setting.sameSortPriorityAsPrevious}
                                     onChange={() => {
-                                        // setter can be called asynchronously so has to directly reference
-                                        //  the object or else it could reference a stale obj and become
-                                        //  unresponsive
-                                        setting.disableSort = !setting.disableSort;
+                                        setting.sameSortPriorityAsPrevious = !setting.sameSortPriorityAsPrevious;
                                     }}
                                     labelProps={{
                                         style: {
                                             display: 'inline-flex',
                                             marginLeft: 10,
+                                            alignItems: 'center',
                                         },
                                     }}
                                 >
-                                    Don't sort by {setting.type}
+                                    Same priority as {prevNonNull.type}
                                 </LabeledCheckbox>
-
-                                {prevNonNull !== null && (
-                                    <LabeledCheckbox
-                                        checked={
-                                            setting.sameSortPriorityAsPrevious
-                                        }
-                                        onChange={() => {
-                                            // setter can be called asynchronously so has to directly reference
-                                            //  the object or else it could reference a stale obj and become
-                                            //  unresponsive
-                                            setting.sameSortPriorityAsPrevious = !setting.sameSortPriorityAsPrevious;
-                                        }}
-                                        labelProps={{
-                                            style: {
-                                                display: 'inline-flex',
-                                                marginLeft: 10,
-                                            },
-                                        }}
-                                    >
-                                        Same priority as {prevNonNull.type}
-                                    </LabeledCheckbox>
-                                )}
-                            </div>
+                            )}
                         </td>
                     </SortableTr>
                 ),
@@ -168,9 +144,10 @@ export default class AdvancedSettingsSelector extends React.Component<
                 show={this.props.show}
                 onHide={this.props.onHide}
                 onShow={this.onShow}
+                dialogClassName={'advancedSettingsSelector'}
             >
                 <Modal.Header closeButton>
-                    <Modal.Title>Advanced Show and Sort Settings</Modal.Title>
+                    <Modal.Title>Advanced Oncoprint Settings</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <SimpleDraggableTable
