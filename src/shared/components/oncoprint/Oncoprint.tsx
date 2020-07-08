@@ -19,7 +19,7 @@ import {
 } from '../../../pages/resultsView/ResultsViewPageStore';
 import './styles.scss';
 import { ShapeParams } from 'oncoprintjs/dist/js/oncoprintshape';
-import { AdvancedShowAndSortSettings } from 'shared/components/oncoprint/SortUtils';
+import { AdvancedShowAndSortSettings } from './AdvancedSettingsUtils';
 
 export type ClinicalTrackDatum = {
     attr_id: string;

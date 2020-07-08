@@ -35,6 +35,15 @@ import {
 import { MUTATION_STATUS_GERMLINE } from 'shared/constants';
 import { SpecialAttribute } from '../../cache/ClinicalDataCache';
 import { stringListToIndexSet } from 'cbioportal-frontend-commons';
+import {
+    AdvancedShowAndSortSettings,
+    AdvancedShowAndSortSettingsType,
+    AdvancedShowAndSortSettingsWithSortBy,
+    AdvancedShowAndSortSettingsWithSortByMap,
+    DataValueToAdvancedSettingsType,
+    getAdvancedSettingsWithSortBy,
+    MutationSettingsTypes,
+} from 'shared/components/oncoprint/AdvancedSettingsUtils';
 
 const cnaDataToString: { [integerCNA: string]: string | undefined } = {
     '-2': 'homdel',
@@ -43,6 +52,81 @@ const cnaDataToString: { [integerCNA: string]: string | undefined } = {
     '1': 'gain',
     '2': 'amp',
 };
+
+function ifNullThenInfty(x: number | null) {
+    if (x === null) {
+        return Number.POSITIVE_INFINITY;
+    } else {
+        return x;
+    }
+}
+export function getMutationAndCNARenderPriority(
+    settingsMap: AdvancedShowAndSortSettingsWithSortByMap
+) {
+    const driverMutationValues = [
+        'inframe_rec',
+        'missense_rec',
+        'promoter_rec',
+        'trunc_rec',
+        'other_rec',
+    ];
+    return _.reduce(
+        DataValueToAdvancedSettingsType,
+        (priorityMap, settingsType, value) => {
+            const vec = [
+                ifNullThenInfty(
+                    settingsMap[settingsType as AdvancedShowAndSortSettingsType]
+                        .sortBy
+                ),
+            ];
+            if (driverMutationValues.includes(value)) {
+                vec.push(
+                    ifNullThenInfty(
+                        settingsMap[
+                            AdvancedShowAndSortSettingsType.DRIVER_MUTATION
+                        ].sortBy
+                    )
+                );
+            }
+            priorityMap[value] = _.sortBy(vec);
+            return priorityMap;
+        },
+        {} as { [val: string]: number[] }
+    );
+}
+
+export function getMRNARenderPriority(
+    settingsMap: AdvancedShowAndSortSettingsWithSortByMap
+) {
+    return {
+        high: [
+            ifNullThenInfty(
+                settingsMap[AdvancedShowAndSortSettingsType.MRNA_HIGH].sortBy
+            ),
+        ],
+        low: [
+            ifNullThenInfty(
+                settingsMap[AdvancedShowAndSortSettingsType.MRNA_LOW].sortBy
+            ),
+        ],
+    };
+}
+export function getProteinRenderPriority(
+    settingsMap: AdvancedShowAndSortSettingsWithSortByMap
+) {
+    return {
+        high: [
+            ifNullThenInfty(
+                settingsMap[AdvancedShowAndSortSettingsType.PROTEIN_HIGH].sortBy
+            ),
+        ],
+        low: [
+            ifNullThenInfty(
+                settingsMap[AdvancedShowAndSortSettingsType.PROTEIN_LOW].sortBy
+            ),
+        ],
+    };
+}
 const mutRenderPriority = stringListToIndexSet([
     'trunc_rec',
     'inframe_rec',
@@ -105,9 +189,27 @@ export function getOncoprintMutationType(
     }
 }
 
+function vectorCmp(a: number[], b: number[]) {
+    const comparingLength = Math.min(a.length, b.length);
+    for (let i = 0; i < comparingLength; i++) {
+        if (a[i] < b[i]) {
+            return -1;
+        } else if (a[i] > b[i]) {
+            return 1;
+        }
+    }
+    if (a.length < b.length) {
+        return -1;
+    } else if (a.length > b.length) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 export function selectDisplayValue(
     counts: { [value: string]: number },
-    priority: { [value: string]: number }
+    priority: { [value: string]: number[] }
 ) {
     const options = Object.keys(counts).map(k => ({
         key: k,
@@ -115,8 +217,10 @@ export function selectDisplayValue(
     }));
     if (options.length > 0) {
         options.sort(function(kv1, kv2) {
-            const rendering_priority_diff =
-                priority[kv1.key] - priority[kv2.key];
+            const rendering_priority_diff = vectorCmp(
+                priority[kv1.key],
+                priority[kv2.key]
+            );
             if (rendering_priority_diff < 0) {
                 return -1;
             } else if (rendering_priority_diff > 0) {
@@ -141,7 +245,11 @@ export function fillGeneticTrackDatum(
     // must already have all non-disp* fields except trackLabel and data
     newDatum: Partial<GeneticTrackDatum>,
     trackLabel: string,
-    data: GeneticTrackDatum_Data[]
+    data: GeneticTrackDatum_Data[],
+    mutPriority: { [value: string]: number[] },
+    cnaPriority: { [value: string]: number[] },
+    mrnaPriority: { [value: string]: number[] },
+    protPriority: { [value: string]: number[] }
 ): GeneticTrackDatum {
     newDatum.trackLabel = trackLabel;
     newDatum.data = data;
@@ -208,10 +316,10 @@ export function fillGeneticTrackDatum(
     if (dispFusion) {
         newDatum.disp_fusion = true;
     }
-    newDatum.disp_cna = selectDisplayValue(dispCnaCounts, cnaRenderPriority);
-    newDatum.disp_mrna = selectDisplayValue(dispMrnaCounts, mrnaRenderPriority);
-    newDatum.disp_prot = selectDisplayValue(dispProtCounts, protRenderPriority);
-    newDatum.disp_mut = selectDisplayValue(dispMutCounts, mutRenderPriority);
+    newDatum.disp_cna = selectDisplayValue(dispCnaCounts, cnaPriority);
+    newDatum.disp_mrna = selectDisplayValue(dispMrnaCounts, mrnaPriority);
+    newDatum.disp_prot = selectDisplayValue(dispProtCounts, protPriority);
+    newDatum.disp_mut = selectDisplayValue(dispMutCounts, mutPriority);
     newDatum.disp_germ = newDatum.disp_mut
         ? dispGermline[newDatum.disp_mut]
         : undefined;
@@ -226,7 +334,8 @@ export function makeGeneticTrackData(
     hugoGeneSymbols: string | string[],
     samples: Sample[],
     genePanelInformation: CoverageInformation,
-    selectedMolecularProfiles: MolecularProfile[]
+    selectedMolecularProfiles: MolecularProfile[],
+    settings: AdvancedShowAndSortSettings
 ): GeneticTrackDatum[];
 
 export function makeGeneticTrackData(
@@ -236,7 +345,8 @@ export function makeGeneticTrackData(
     hugoGeneSymbols: string | string[],
     patients: Patient[],
     genePanelInformation: CoverageInformation,
-    selectedMolecularProfiles: MolecularProfile[]
+    selectedMolecularProfiles: MolecularProfile[],
+    settings: AdvancedShowAndSortSettings
 ): GeneticTrackDatum[];
 
 export function makeGeneticTrackData(
@@ -246,7 +356,8 @@ export function makeGeneticTrackData(
     hugoGeneSymbols: string | string[],
     cases: Sample[] | Patient[],
     genePanelInformation: CoverageInformation,
-    selectedMolecularProfiles: MolecularProfile[]
+    selectedMolecularProfiles: MolecularProfile[],
+    settings: AdvancedShowAndSortSettings
 ): GeneticTrackDatum[] {
     if (!cases.length) {
         return [];
@@ -258,6 +369,15 @@ export function makeGeneticTrackData(
         p => p.molecularProfileId
     );
     const ret: GeneticTrackDatum[] = [];
+
+    const settingsMap = _.keyBy(
+        getAdvancedSettingsWithSortBy(settings),
+        s => s.type
+    ) as AdvancedShowAndSortSettingsWithSortByMap;
+    const mutAndCnaPriority = getMutationAndCNARenderPriority(settingsMap);
+    const mrnaPriority = getMRNARenderPriority(settingsMap);
+    const protPriority = getProteinRenderPriority(settingsMap);
+
     if (isSampleList(cases)) {
         // case: Samples
         for (const sample of cases) {
@@ -299,7 +419,11 @@ export function makeGeneticTrackData(
                 fillGeneticTrackDatum(
                     newDatum,
                     geneSymbolArray.join(' / '),
-                    sampleData
+                    sampleData,
+                    mutAndCnaPriority,
+                    mutAndCnaPriority,
+                    mrnaPriority,
+                    protPriority
                 )
             );
         }
@@ -344,7 +468,11 @@ export function makeGeneticTrackData(
                 fillGeneticTrackDatum(
                     newDatum,
                     geneSymbolArray.join(' / '),
-                    patientData
+                    patientData,
+                    mutAndCnaPriority,
+                    mutAndCnaPriority,
+                    mrnaPriority,
+                    protPriority
                 )
             );
         }

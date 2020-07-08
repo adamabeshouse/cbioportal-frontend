@@ -1,65 +1,14 @@
-import { TrackSortComparator, TrackSortVector } from 'oncoprintjs';
+import { TrackSortVector } from 'oncoprintjs';
 import { ClinicalTrackSpec, GeneticTrackDatum } from './Oncoprint';
 import naturalSort from 'javascript-natural-sort';
 import _ from 'lodash';
-
-export enum AdvancedShowAndSortSettingsType {
-    DRIVER_MUTATION = 'Driver Mutation',
-
-    AMP = 'Amplification',
-    DEL = 'Deletion',
-    GAIN = 'Gain',
-    HETLOSS = 'Heterozygous Loss',
-
-    FUSION = 'Fusion',
-
-    MISSENSE = 'Missense',
-    INFRAME = 'Inframe',
-    PROMOTER = 'Promoter',
-    TRUNCATING = 'Truncating',
-    OTHER_MUTATION = 'Other Mutation',
-
-    MUTATED = 'Mutated',
-
-    MRNA_HIGH = 'mRNA High',
-    MRNA_LOW = 'mRNA Low',
-
-    PROTEIN_HIGH = 'Protein High',
-    PROTEIN_LOW = 'Protein Low',
-
-    GERMLINE = 'Germline',
-}
-export type AdvancedShowAndSortSettings = {
-    type: AdvancedShowAndSortSettingsType;
-    show: boolean;
-    sameSortPriorityAsPrevious: boolean;
-    disableSort: boolean;
-}[];
-
-export const DefaultAdvancedShowAndSortSettings: AdvancedShowAndSortSettings = [
-    AdvancedShowAndSortSettingsType.FUSION,
-    AdvancedShowAndSortSettingsType.AMP,
-    AdvancedShowAndSortSettingsType.DEL,
-    AdvancedShowAndSortSettingsType.GAIN,
-    AdvancedShowAndSortSettingsType.HETLOSS,
-    AdvancedShowAndSortSettingsType.DRIVER_MUTATION,
-    AdvancedShowAndSortSettingsType.MUTATED,
-    AdvancedShowAndSortSettingsType.TRUNCATING,
-    AdvancedShowAndSortSettingsType.INFRAME,
-    AdvancedShowAndSortSettingsType.PROMOTER,
-    AdvancedShowAndSortSettingsType.MISSENSE,
-    AdvancedShowAndSortSettingsType.OTHER_MUTATION,
-    AdvancedShowAndSortSettingsType.GERMLINE,
-    AdvancedShowAndSortSettingsType.MRNA_HIGH,
-    AdvancedShowAndSortSettingsType.MRNA_LOW,
-    AdvancedShowAndSortSettingsType.PROTEIN_HIGH,
-    AdvancedShowAndSortSettingsType.PROTEIN_LOW,
-].map(type => ({
-    type,
-    show: true,
-    sameSortPriorityAsPrevious: false,
-    disableSort: false,
-})); // default needs to have all those options in there in order for mobx to register them all for settings interface
+import {
+    AdvancedShowAndSortSettings,
+    AdvancedShowAndSortSettingsType,
+    DataValueToAdvancedSettingsType,
+    DefaultAdvancedShowAndSortSettings,
+    getAdvancedSettingsWithSortBy,
+} from './AdvancedSettingsUtils';
 
 /**
  * Get sign of a number
@@ -74,37 +23,6 @@ function sign(x: number): 0 | -1 | 1 {
     } else {
         return 0;
     }
-}
-
-export function getAdvancedSettingsWithSortBy(
-    settings: AdvancedShowAndSortSettings
-) {
-    const settingsWithSortBy: (AdvancedShowAndSortSettings[0] & {
-        sortBy: number | null;
-    })[] = [];
-
-    let previousPriority: number = 0; // this wont be used unless all the first rows have disableSort set to true
-
-    settings.forEach((s, index) => {
-        let sortBy: number | null;
-        if (s.disableSort || !s.show) {
-            sortBy = null;
-        } else if (index === 0) {
-            sortBy = 1;
-        } else if (s.sameSortPriorityAsPrevious) {
-            sortBy = previousPriority;
-        } else {
-            sortBy = previousPriority + 1;
-        }
-
-        if (sortBy !== null) {
-            previousPriority = sortBy;
-        }
-
-        settingsWithSortBy.push(Object.assign({}, s, { sortBy }));
-    });
-
-    return settingsWithSortBy;
 }
 
 export function getGeneticTrackSortComparator(
@@ -136,34 +54,11 @@ export function getGeneticTrackSortComparator(
         }
 
         // CNA
-        let cnaNumberAdded = false;
-        switch (d.disp_cna) {
-            case 'amp':
-                if (settingsMap[settingsType.AMP].show) {
-                    vector.push(settingsMap[settingsType.AMP].sortBy);
-                    cnaNumberAdded = true;
-                }
-                break;
-            case 'homdel':
-                if (settingsMap[settingsType.DEL].show) {
-                    vector.push(settingsMap[settingsType.DEL].sortBy);
-                    cnaNumberAdded = true;
-                }
-                break;
-            case 'gain':
-                if (settingsMap[settingsType.GAIN].show) {
-                    vector.push(settingsMap[settingsType.GAIN].sortBy);
-                    cnaNumberAdded = true;
-                }
-                break;
-            case 'hetloss':
-                if (settingsMap[settingsType.HETLOSS].show) {
-                    vector.push(settingsMap[settingsType.HETLOSS].sortBy);
-                    cnaNumberAdded = true;
-                }
-                break;
-        }
-        if (!cnaNumberAdded) {
+        const setting =
+            settingsMap[DataValueToAdvancedSettingsType[d.disp_cna!]];
+        if (setting && setting.show) {
+            vector.push(setting.sortBy);
+        } else {
             vector.push(Number.POSITIVE_INFINITY);
         }
 
@@ -186,49 +81,11 @@ export function getGeneticTrackSortComparator(
 
         if (sortByMutationType) {
             // Mutation type
-            let numberAdded = false;
-            switch (d.disp_mut) {
-                case 'inframe_rec':
-                case 'inframe':
-                    if (settingsMap[settingsType.INFRAME].show) {
-                        vector.push(settingsMap[settingsType.INFRAME].sortBy);
-                        numberAdded = true;
-                    }
-                    break;
-                case 'missense_rec':
-                case 'missense':
-                    if (settingsMap[settingsType.MISSENSE].show) {
-                        vector.push(settingsMap[settingsType.MISSENSE].sortBy);
-                        numberAdded = true;
-                    }
-                    break;
-                case 'promoter_rec':
-                case 'promoter':
-                    if (settingsMap[settingsType.PROMOTER].show) {
-                        vector.push(settingsMap[settingsType.PROMOTER].sortBy);
-                        numberAdded = true;
-                    }
-                    break;
-                case 'trunc_rec':
-                case 'trunc':
-                    if (settingsMap[settingsType.TRUNCATING].show) {
-                        vector.push(
-                            settingsMap[settingsType.TRUNCATING].sortBy
-                        );
-                        numberAdded = true;
-                    }
-                    break;
-                case 'other_rec':
-                case 'other':
-                    if (settingsMap[settingsType.OTHER_MUTATION].show) {
-                        vector.push(
-                            settingsMap[settingsType.OTHER_MUTATION].sortBy
-                        );
-                        numberAdded = true;
-                    }
-                    break;
-            }
-            if (!numberAdded) {
+            const setting =
+                settingsMap[DataValueToAdvancedSettingsType[d.disp_mut!]];
+            if (setting && setting.show) {
+                vector.push(setting.sortBy);
+            } else {
                 vector.push(Number.POSITIVE_INFINITY);
             }
         } else {

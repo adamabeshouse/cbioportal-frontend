@@ -83,11 +83,11 @@ import {
     getOncoprinterGeneticInput,
 } from '../../../pages/staticPages/tools/oncoprinter/OncoprinterImportUtils';
 import { buildCBioPortalPageUrl } from '../../api/urls';
+import AdvancedSettingsSelector from 'pages/resultsView/oncoprint/AdvancedSettingsSelector';
 import {
     AdvancedShowAndSortSettings,
     DefaultAdvancedShowAndSortSettings,
-} from 'shared/components/oncoprint/SortUtils';
-import AdvancedSettingsSelector from 'pages/resultsView/oncoprint/AdvancedSettingsSelector';
+} from './AdvancedSettingsUtils';
 
 interface IResultsViewOncoprintProps {
     divId: string;

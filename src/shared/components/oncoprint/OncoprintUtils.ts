@@ -60,6 +60,7 @@ import {
 import { RESERVED_CLINICAL_VALUE_COLORS } from 'shared/lib/Colors';
 import { ISelectOption } from './controls/OncoprintControls';
 import { NOT_APPLICABLE_VALUE } from 'shared/lib/GenericAssayUtils/GenericAssayCommonUtils';
+import { AdvancedShowAndSortSettings } from 'shared/components/oncoprint/AdvancedSettingsUtils';
 
 interface IGenesetExpansionMap {
     [genesetTrackKey: string]: IHeatmapTrackSpec[];
@@ -570,6 +571,7 @@ interface IGeneticTrackAppState {
     sequencedPatientKeysByGene: any;
     selectedMolecularProfiles: MolecularProfile[];
     expansionIndexMap: ObservableMap<number[]>;
+    settings: AdvancedShowAndSortSettings;
 }
 
 function isAltered(d: GeneticTrackDatum) {
@@ -599,7 +601,8 @@ export function getAlterationData(
         | IQueriedMergedTrackCaseData
         | (IQueriedCaseData<any> & { mergedTrackOqlList?: never }),
     isQueriedGeneSampling: boolean,
-    queryGenes: Gene[]
+    queryGenes: Gene[],
+    settings: AdvancedShowAndSortSettings
 ) {
     const sampleMode = false;
     const oql = caseData.oql;
@@ -612,7 +615,8 @@ export function getAlterationData(
         geneSymbolArray,
         patients as Patient[],
         coverageInformation,
-        selectedMolecularProfiles
+        selectedMolecularProfiles,
+        settings
     );
 
     const alterationInfo = alterationInfoForOncoprintTrackData(
@@ -655,6 +659,7 @@ export function makeGeneticTrackWith({
     sequencedPatientKeysByGene,
     selectedMolecularProfiles,
     expansionIndexMap,
+    settings,
 }: IGeneticTrackAppState) {
     return function makeTrack(
         caseData:
@@ -674,14 +679,16 @@ export function makeGeneticTrackWith({
                   geneSymbolArray,
                   samples as Sample[],
                   coverageInformation,
-                  selectedMolecularProfiles
+                  selectedMolecularProfiles,
+                  settings
               )
             : makeGeneticTrackData(
                   dataByCase.patients,
                   geneSymbolArray,
                   patients as Patient[],
                   coverageInformation,
-                  selectedMolecularProfiles
+                  selectedMolecularProfiles,
+                  settings
               );
         const alterationInfo = alterationInfoForOncoprintTrackData(
             sampleMode,
@@ -789,6 +796,7 @@ export function makeGeneticTracksMobxPromise(
                 selectedMolecularProfiles: oncoprint.props.store
                     .selectedMolecularProfiles.result!,
                 expansionIndexMap: oncoprint.expansionsByGeneticTrackKey,
+                settings: oncoprint.advancedSettings,
             });
             return oncoprint.props.store.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine.result!.map(
                 (alterationData, trackIndex) =>

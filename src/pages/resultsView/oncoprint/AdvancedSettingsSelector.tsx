@@ -1,9 +1,5 @@
 import * as React from 'react';
 import { observer } from 'mobx-react';
-import {
-    AdvancedShowAndSortSettings,
-    getAdvancedSettingsWithSortBy,
-} from 'shared/components/oncoprint/SortUtils';
 import { Modal } from 'react-bootstrap';
 import _ from 'lodash';
 import { action, computed, observable, toJS } from 'mobx';
@@ -14,6 +10,10 @@ import SimpleDraggableTable, {
 } from 'shared/components/simpleDraggableTable/SimpleDraggableTable';
 import { stringListToIndexSet } from 'cbioportal-frontend-commons';
 import LabeledCheckbox from 'shared/components/labeledCheckbox/LabeledCheckbox';
+import {
+    AdvancedShowAndSortSettings,
+    getAdvancedSettingsWithSortBy,
+} from 'shared/components/oncoprint/AdvancedSettingsUtils';
 
 export interface IAdvancedOncoprintSettingsProps {
     settings: AdvancedShowAndSortSettings;
