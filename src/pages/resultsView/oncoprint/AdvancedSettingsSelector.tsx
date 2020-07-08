@@ -66,6 +66,7 @@ export default class AdvancedSettingsSelector extends React.Component<
                 this.workingSettingsWithSortBy,
                 index
             );
+            const sortable = !setting.disableSort && setting.show;
             return {
                 uid: setting.type,
                 tr: (
@@ -87,14 +88,15 @@ export default class AdvancedSettingsSelector extends React.Component<
                                 onClick={() => {
                                     setting.disableSort = !setting.disableSort;
                                 }}
+                                disabled={!setting.show}
                             />
                         </td>
                         <td style={{ width: 350 }}>
                             <DragHandle />
-                            {setting.disableSort
+                            {!sortable
                                 ? '-'
                                 : this.workingSettingsWithSortBy[index].sortBy}
-                            {prevNonNull !== null && !setting.disableSort && (
+                            {prevNonNull !== null && sortable && (
                                 <LabeledCheckbox
                                     checked={setting.sameSortPriorityAsPrevious}
                                     onChange={() => {
