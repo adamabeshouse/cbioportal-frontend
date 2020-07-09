@@ -128,7 +128,7 @@ export default class DownloadTab extends React.Component<
         await: () => [
             this.props.store.selectedMolecularProfiles,
             this.props.store.oqlFilteredCaseAggregatedDataByOQLLine,
-            this.props.store.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine,
+            this.props.store.dataForOncoprint,
             this.props.store.coverageInformation,
             this.props.store.samples,
             this.geneAlterationDataByGene,
@@ -141,9 +141,7 @@ export default class DownloadTab extends React.Component<
                     this.props.store.selectedMolecularProfiles.result!,
                     this.props.store.oqlFilteredCaseAggregatedDataByOQLLine
                         .result!,
-                    this.props.store
-                        .oqlFilteredCaseAggregatedDataByUnflattenedOQLLine
-                        .result!,
+                    this.props.store.dataForOncoprint.result!,
                     this.props.store.coverageInformation.result!,
                     this.props.store.samples.result!,
                     this.geneAlterationDataByGene.result!,
@@ -407,163 +405,151 @@ export default class DownloadTab extends React.Component<
     });
 
     readonly trackLabels = remoteData({
-        await: () => [
-            this.props.store.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine,
-        ],
+        await: () => [this.props.store.dataForOncoprint],
         invoke: () => {
             const labels: string[] = [];
-            this.props.store.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine.result!.forEach(
-                (data, index) => {
-                    // mergedTrackOqlList is undefined means the data is for single track / oql
-                    if (data.mergedTrackOqlList === undefined) {
-                        labels.push(
-                            getSingleGeneResultKey(
-                                index,
-                                this.props.store.oqlText,
-                                data.oql as OQLLineFilterOutput<
-                                    AnnotatedExtendedAlteration
-                                >
-                            )
-                        );
-                    }
-                    // or data is for merged track (group: list of oqls)
-                    else {
-                        labels.push(
-                            getMultipleGeneResultKey(
-                                data.oql as MergedTrackLineFilterOutput<
-                                    AnnotatedExtendedAlteration
-                                >
-                            )
-                        );
-                    }
-                }
-            );
-            return Promise.resolve(labels);
-        },
-    });
-
-    readonly trackAlterationTypesMap = remoteData({
-        await: () => [
-            this.props.store.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine,
-        ],
-        invoke: () => {
-            const trackAlterationTypesMap: { [label: string]: string[] } = {};
-            this.props.store.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine.result!.forEach(
-                (data, index) => {
-                    // mergedTrackOqlList is undefined means the data is for single track / oql
-                    if (data.mergedTrackOqlList === undefined) {
-                        const singleTrackOql = data.oql as OQLLineFilterOutput<
-                            AnnotatedExtendedAlteration
-                        >;
-                        const label = getSingleGeneResultKey(
+            this.props.store.dataForOncoprint.result!.forEach((data, index) => {
+                // mergedTrackOqlList is undefined means the data is for single track / oql
+                if (data.mergedTrackOqlList === undefined) {
+                    labels.push(
+                        getSingleGeneResultKey(
                             index,
                             this.props.store.oqlText,
                             data.oql as OQLLineFilterOutput<
                                 AnnotatedExtendedAlteration
                             >
-                        );
-                        // put types for single track into the map, key is track label
-                        if (singleTrackOql.parsed_oql_line.alterations) {
-                            trackAlterationTypesMap[label] = _.uniq(
-                                _.map(
-                                    singleTrackOql.parsed_oql_line.alterations,
-                                    alteration =>
-                                        alteration.alteration_type.toUpperCase()
-                                )
-                            );
-                        }
-                    }
-                    // or data is for merged track (group: list of oqls)
-                    else {
-                        const mergedTrackOql = data.oql as MergedTrackLineFilterOutput<
-                            AnnotatedExtendedAlteration
-                        >;
-                        const label = getMultipleGeneResultKey(
+                        )
+                    );
+                }
+                // or data is for merged track (group: list of oqls)
+                else {
+                    labels.push(
+                        getMultipleGeneResultKey(
                             data.oql as MergedTrackLineFilterOutput<
                                 AnnotatedExtendedAlteration
                             >
+                        )
+                    );
+                }
+            });
+            return Promise.resolve(labels);
+        },
+    });
+
+    readonly trackAlterationTypesMap = remoteData({
+        await: () => [this.props.store.dataForOncoprint],
+        invoke: () => {
+            const trackAlterationTypesMap: { [label: string]: string[] } = {};
+            this.props.store.dataForOncoprint.result!.forEach((data, index) => {
+                // mergedTrackOqlList is undefined means the data is for single track / oql
+                if (data.mergedTrackOqlList === undefined) {
+                    const singleTrackOql = data.oql as OQLLineFilterOutput<
+                        AnnotatedExtendedAlteration
+                    >;
+                    const label = getSingleGeneResultKey(
+                        index,
+                        this.props.store.oqlText,
+                        data.oql as OQLLineFilterOutput<
+                            AnnotatedExtendedAlteration
+                        >
+                    );
+                    // put types for single track into the map, key is track label
+                    if (singleTrackOql.parsed_oql_line.alterations) {
+                        trackAlterationTypesMap[label] = _.uniq(
+                            _.map(
+                                singleTrackOql.parsed_oql_line.alterations,
+                                alteration =>
+                                    alteration.alteration_type.toUpperCase()
+                            )
                         );
-                        // put types for merged track into the map, key is track label
-                        let alterations: string[] = [];
-                        _.forEach(
-                            mergedTrackOql.list,
-                            (
-                                oql: OQLLineFilterOutput<
-                                    AnnotatedExtendedAlteration
-                                >
-                            ) => {
-                                if (oql.parsed_oql_line.alterations) {
-                                    const types: string[] = _.map(
-                                        oql.parsed_oql_line.alterations,
-                                        alteration =>
-                                            alteration.alteration_type.toUpperCase()
-                                    );
-                                    alterations.push(...types);
-                                }
-                            }
-                        );
-                        trackAlterationTypesMap[label] = _.uniq(alterations);
                     }
                 }
-            );
+                // or data is for merged track (group: list of oqls)
+                else {
+                    const mergedTrackOql = data.oql as MergedTrackLineFilterOutput<
+                        AnnotatedExtendedAlteration
+                    >;
+                    const label = getMultipleGeneResultKey(
+                        data.oql as MergedTrackLineFilterOutput<
+                            AnnotatedExtendedAlteration
+                        >
+                    );
+                    // put types for merged track into the map, key is track label
+                    let alterations: string[] = [];
+                    _.forEach(
+                        mergedTrackOql.list,
+                        (
+                            oql: OQLLineFilterOutput<
+                                AnnotatedExtendedAlteration
+                            >
+                        ) => {
+                            if (oql.parsed_oql_line.alterations) {
+                                const types: string[] = _.map(
+                                    oql.parsed_oql_line.alterations,
+                                    alteration =>
+                                        alteration.alteration_type.toUpperCase()
+                                );
+                                alterations.push(...types);
+                            }
+                        }
+                    );
+                    trackAlterationTypesMap[label] = _.uniq(alterations);
+                }
+            });
             return Promise.resolve(trackAlterationTypesMap);
         },
     });
 
     readonly geneAlterationMap = remoteData({
-        await: () => [
-            this.props.store.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine,
-        ],
+        await: () => [this.props.store.dataForOncoprint],
         invoke: () => {
             const geneAlterationMap: { [label: string]: Alteration[] } = {};
-            this.props.store.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine.result!.forEach(
-                (data, index) => {
-                    // mergedTrackOqlList is undefined means the data is for single track / oql
-                    if (data.mergedTrackOqlList === undefined) {
-                        const singleTrackOql = data.oql as OQLLineFilterOutput<
-                            AnnotatedExtendedAlteration
-                        >;
-                        // put types for single track into the map, key is gene name
-                        if (singleTrackOql.parsed_oql_line.alterations) {
-                            geneAlterationMap[singleTrackOql.gene] = _.chain(
-                                singleTrackOql.parsed_oql_line.alterations
-                            )
-                                .union(geneAlterationMap[singleTrackOql.gene])
-                                .uniq()
-                                .value();
-                        }
-                    }
-                    // or data is for merged track (group: list of oqls)
-                    else {
-                        const mergedTrackOql = data.oql as MergedTrackLineFilterOutput<
-                            AnnotatedExtendedAlteration
-                        >;
-                        // put types for merged track into the map, key is gene name
-                        let alterations: string[] = [];
-                        _.forEach(
-                            mergedTrackOql.list,
-                            (
-                                oql: OQLLineFilterOutput<
-                                    AnnotatedExtendedAlteration
-                                >
-                            ) => {
-                                if (oql.parsed_oql_line.alterations) {
-                                    const types: string[] = _.map(
-                                        oql.parsed_oql_line.alterations,
-                                        alteration => alteration.alteration_type
-                                    );
-                                    geneAlterationMap[oql.gene] = _.chain(
-                                        oql.parsed_oql_line.alterations
-                                    )
-                                        .union(geneAlterationMap[oql.gene])
-                                        .uniq()
-                                        .value();
-                                }
-                            }
-                        );
+            this.props.store.dataForOncoprint.result!.forEach((data, index) => {
+                // mergedTrackOqlList is undefined means the data is for single track / oql
+                if (data.mergedTrackOqlList === undefined) {
+                    const singleTrackOql = data.oql as OQLLineFilterOutput<
+                        AnnotatedExtendedAlteration
+                    >;
+                    // put types for single track into the map, key is gene name
+                    if (singleTrackOql.parsed_oql_line.alterations) {
+                        geneAlterationMap[singleTrackOql.gene] = _.chain(
+                            singleTrackOql.parsed_oql_line.alterations
+                        )
+                            .union(geneAlterationMap[singleTrackOql.gene])
+                            .uniq()
+                            .value();
                     }
                 }
-            );
+                // or data is for merged track (group: list of oqls)
+                else {
+                    const mergedTrackOql = data.oql as MergedTrackLineFilterOutput<
+                        AnnotatedExtendedAlteration
+                    >;
+                    // put types for merged track into the map, key is gene name
+                    let alterations: string[] = [];
+                    _.forEach(
+                        mergedTrackOql.list,
+                        (
+                            oql: OQLLineFilterOutput<
+                                AnnotatedExtendedAlteration
+                            >
+                        ) => {
+                            if (oql.parsed_oql_line.alterations) {
+                                const types: string[] = _.map(
+                                    oql.parsed_oql_line.alterations,
+                                    alteration => alteration.alteration_type
+                                );
+                                geneAlterationMap[oql.gene] = _.chain(
+                                    oql.parsed_oql_line.alterations
+                                )
+                                    .union(geneAlterationMap[oql.gene])
+                                    .uniq()
+                                    .value();
+                            }
+                        }
+                    );
+                }
+            });
             return Promise.resolve(geneAlterationMap);
         },
     });

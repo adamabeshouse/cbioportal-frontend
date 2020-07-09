@@ -209,6 +209,12 @@ import {
 import { makeUniqueColorGetter } from '../../shared/components/plots/PlotUtils';
 import ifNotDefined from '../../shared/lib/ifNotDefined';
 import ComplexKeyMap from '../../shared/lib/complexKeyDataStructures/ComplexKeyMap';
+import {
+    AdvancedShowAndSortSettings,
+    AdvancedShowAndSortSettingsType,
+    DefaultAdvancedShowAndSortSettings,
+    filterData,
+} from 'shared/components/oncoprint/AdvancedSettingsUtils';
 
 type Optional<T> =
     | { isApplicable: true; value: T }
@@ -537,6 +543,14 @@ export class ResultsViewPageStore {
             },
             { fireImmediately: true }
         );
+
+        this.oncoprintSettings = observable({
+            distinguishMutationType: true,
+            distinguishGermlineMutations: true,
+            get distinguishDrivers() {
+                return store.driverAnnotationSettings.driversAnnotated;
+            },
+        });
     }
 
     destroy() {
@@ -546,6 +560,49 @@ export class ResultsViewPageStore {
     public urlWrapper: ResultsViewURLWrapper;
 
     public driverAnnotationsReactionDisposer: any;
+
+    public oncoprintSettings: {
+        distinguishMutationType: boolean;
+        distinguishGermlineMutations: boolean;
+        distinguishDrivers: boolean;
+    };
+
+    @observable.ref
+    private _advancedSettings: AdvancedShowAndSortSettings = DefaultAdvancedShowAndSortSettings.slice();
+    @computed get advancedSettings() {
+        let settingsToFilterOut: AdvancedShowAndSortSettingsType[] = [];
+        if (!this.oncoprintSettings.distinguishDrivers) {
+            settingsToFilterOut.push(
+                AdvancedShowAndSortSettingsType.DRIVER_MUTATION
+            );
+        }
+
+        if (this.oncoprintSettings.distinguishMutationType) {
+            settingsToFilterOut.push(AdvancedShowAndSortSettingsType.MUTATED);
+        } else {
+            settingsToFilterOut.push(
+                AdvancedShowAndSortSettingsType.MISSENSE,
+                AdvancedShowAndSortSettingsType.INFRAME,
+                AdvancedShowAndSortSettingsType.PROMOTER,
+                AdvancedShowAndSortSettingsType.TRUNCATING,
+                AdvancedShowAndSortSettingsType.OTHER_MUTATION
+            );
+        }
+
+        if (!this.oncoprintSettings.distinguishGermlineMutations) {
+            settingsToFilterOut.push(AdvancedShowAndSortSettingsType.GERMLINE);
+        }
+
+        return this._advancedSettings.filter(
+            s => !settingsToFilterOut.includes(s.type)
+        );
+    }
+
+    @autobind
+    @action
+    public updateAdvancedSettings(settings: AdvancedShowAndSortSettings) {
+        this._advancedSettings = settings;
+    }
 
     @computed get oqlText() {
         return this.urlWrapper.query.gene_list;
@@ -854,7 +911,7 @@ export class ResultsViewPageStore {
             this.alteredPatients,
             this.unalteredPatients,
             this.samples,
-            this.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine,
+            this.dataForOncoprint,
             this.defaultOQLQuery,
         ],
         invoke: () => {
@@ -877,8 +934,7 @@ export class ResultsViewPageStore {
                     this.usePatientLevelEnrichments,
                     this.studyIds.result!,
                     this.samples.result!,
-                    this.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine
-                        .result!,
+                    this.dataForOncoprint.result!,
                     this.defaultOQLQuery.result!
                 )
             );
@@ -1666,9 +1722,7 @@ export class ResultsViewPageStore {
         },
     });
 
-    readonly oqlFilteredCaseAggregatedDataByUnflattenedOQLLine = remoteData<
-        IQueriedMergedTrackCaseData[]
-    >({
+    readonly dataForOncoprint = remoteData<IQueriedMergedTrackCaseData[]>({
         await: () => [
             this.filteredAndAnnotatedMutations,
             this.filteredAndAnnotatedMolecularData,
@@ -1678,10 +1732,14 @@ export class ResultsViewPageStore {
             this.patients,
         ],
         invoke: () => {
-            const data = [
-                ...this.filteredAndAnnotatedMutations.result!,
-                ...this.filteredAndAnnotatedMolecularData.result!,
-            ];
+            const data = filterData(
+                [
+                    ...this.filteredAndAnnotatedMutations.result!,
+                    ...this.filteredAndAnnotatedMolecularData.result!,
+                ],
+                _.keyBy(this.advancedSettings, s => s.type)
+            );
+
             const accessorsInstance = new AccessorsForOqlFilter(
                 this.selectedMolecularProfiles.result!
             );
@@ -1721,7 +1779,7 @@ export class ResultsViewPageStore {
 
     readonly isSampleAlteredMap = remoteData({
         await: () => [
-            this.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine,
+            this.dataForOncoprint,
             this.samples,
             this.coverageInformation,
             this.selectedMolecularProfiles,
@@ -1729,7 +1787,7 @@ export class ResultsViewPageStore {
         ],
         invoke: async () => {
             return getSampleAlteredMap(
-                this.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine.result!,
+                this.dataForOncoprint.result!,
                 this.samples.result,
                 this.oqlText,
                 this.coverageInformation.result,

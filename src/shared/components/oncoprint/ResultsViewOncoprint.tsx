@@ -136,37 +136,6 @@ export default class ResultsViewOncoprint extends React.Component<
     IResultsViewOncoprintProps,
     {}
 > {
-    @observable.ref
-    private _advancedSettings: AdvancedShowAndSortSettings = DefaultAdvancedShowAndSortSettings.slice();
-    @computed get advancedSettings() {
-        let settingsToFilterOut: AdvancedShowAndSortSettingsType[] = [];
-        if (!this.distinguishDrivers) {
-            settingsToFilterOut.push(
-                AdvancedShowAndSortSettingsType.DRIVER_MUTATION
-            );
-        }
-
-        if (this.distinguishMutationType) {
-            settingsToFilterOut.push(AdvancedShowAndSortSettingsType.MUTATED);
-        } else {
-            settingsToFilterOut.push(
-                AdvancedShowAndSortSettingsType.MISSENSE,
-                AdvancedShowAndSortSettingsType.INFRAME,
-                AdvancedShowAndSortSettingsType.PROMOTER,
-                AdvancedShowAndSortSettingsType.TRUNCATING,
-                AdvancedShowAndSortSettingsType.OTHER_MUTATION
-            );
-        }
-
-        if (!this.distinguishGermlineMutations) {
-            settingsToFilterOut.push(AdvancedShowAndSortSettingsType.GERMLINE);
-        }
-
-        return this._advancedSettings.filter(
-            s => !settingsToFilterOut.includes(s.type)
-        );
-    }
-
     @observable showAdvancedSettingsSelector = false;
 
     @autobind
@@ -178,7 +147,7 @@ export default class ResultsViewOncoprint extends React.Component<
     @autobind
     @action
     private updateAdvancedSettings(settings: AdvancedShowAndSortSettings) {
-        this._advancedSettings = settings;
+        this.props.store.updateAdvancedSettings(settings);
         this.showAdvancedSettingsSelector = false;
     }
 
@@ -247,8 +216,6 @@ export default class ResultsViewOncoprint extends React.Component<
         return result;
     }
 
-    @observable distinguishGermlineMutations: boolean = true;
-    @observable distinguishMutationType: boolean = true;
     @observable showUnalteredColumns: boolean = true;
     @observable showWhitespaceBetweenColumns: boolean = true;
     @observable showClinicalTrackLegends: boolean = true;
@@ -477,13 +444,15 @@ export default class ResultsViewOncoprint extends React.Component<
                 return !self.caseListSortPossible;
             },
             get distinguishMutationType() {
-                return self.distinguishMutationType;
+                return self.props.store.oncoprintSettings
+                    .distinguishMutationType;
             },
             get distinguishDrivers() {
                 return self.distinguishDrivers;
             },
             get distinguishGermlineMutations() {
-                return self.distinguishGermlineMutations;
+                return self.props.store.oncoprintSettings
+                    .distinguishGermlineMutations;
             },
             get annotateDriversOncoKb() {
                 return self.props.store.driverAnnotationSettings.oncoKb;
@@ -635,7 +604,7 @@ export default class ResultsViewOncoprint extends React.Component<
     }
 
     @computed get distinguishDrivers() {
-        return this.props.store.driverAnnotationSettings.driversAnnotated;
+        return this.props.store.oncoprintSettings.distinguishDrivers;
     }
 
     onMouseEnter() {
@@ -697,7 +666,7 @@ export default class ResultsViewOncoprint extends React.Component<
                 this.showMinimap = show;
             },
             onSelectDistinguishMutationType: (s: boolean) => {
-                this.distinguishMutationType = s;
+                this.props.store.oncoprintSettings.distinguishMutationType = s;
             },
             onSelectDistinguishDrivers: action((s: boolean) => {
                 if (!s) {
@@ -742,7 +711,7 @@ export default class ResultsViewOncoprint extends React.Component<
                 }
             }),
             onSelectDistinguishGermlineMutations: (s: boolean) => {
-                this.distinguishGermlineMutations = s;
+                this.props.store.oncoprintSettings.distinguishGermlineMutations = s;
             },
             onSelectAnnotateOncoKb: action((s: boolean) => {
                 this.props.store.driverAnnotationSettings.oncoKb = s;
@@ -1824,11 +1793,11 @@ export default class ResultsViewOncoprint extends React.Component<
                 </div>
 
                 <AdvancedSettingsSelector
-                    settings={this.advancedSettings}
+                    settings={this.props.store.advancedSettings}
                     show={this.showAdvancedSettingsSelector}
                     onHide={this.toggleAdvancedSettingsSelector}
                     updateSettings={this.updateAdvancedSettings}
-                    oncoprint={this}
+                    store={this.props.store}
                 />
                 <div
                     className={classNames('oncoprintContainer', {
@@ -1878,15 +1847,17 @@ export default class ResultsViewOncoprint extends React.Component<
                                 }
                                 horzZoomToFitIds={this.alteredKeys.result}
                                 distinguishMutationType={
-                                    this.distinguishMutationType
+                                    this.props.store.oncoprintSettings
+                                        .distinguishMutationType
                                 }
                                 distinguishDrivers={this.distinguishDrivers}
                                 distinguishGermlineMutations={
-                                    this.distinguishGermlineMutations
+                                    this.props.store.oncoprintSettings
+                                        .distinguishGermlineMutations
                                 }
                                 sortConfig={this.oncoprintLibrarySortConfig}
                                 advancedShowAndSortSettings={
-                                    this.advancedSettings
+                                    this.props.store.advancedSettings
                                 }
                                 showClinicalTrackLegends={
                                     this.showClinicalTrackLegends

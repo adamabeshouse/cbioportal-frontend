@@ -403,8 +403,7 @@ export default class ResultsViewPage extends React.Component<
                         store.sequencedSampleKeysByGene.isComplete &&
                         store.sequencedPatientKeysByGene.isComplete &&
                         store.selectedMolecularProfiles.isComplete &&
-                        store.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine
-                            .isComplete;
+                        store.dataForOncoprint.isComplete;
 
                     return (
                         <MSKTab

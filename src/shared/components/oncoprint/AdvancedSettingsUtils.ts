@@ -1,4 +1,9 @@
 import ResultsViewOncoprint from 'shared/components/oncoprint/ResultsViewOncoprint';
+import {
+    AnnotatedExtendedAlteration,
+    ResultsViewPageStore,
+} from 'pages/resultsView/ResultsViewPageStore';
+import { getGeneticTrackDatumValue } from 'shared/components/oncoprint/DataUtils';
 
 export enum AdvancedShowAndSortSettingsType {
     DRIVER_MUTATION = 'Driver Mutation',
@@ -58,20 +63,9 @@ export const DataValueToAdvancedSettingsType: {
     trunc: AdvancedShowAndSortSettingsType.TRUNCATING,
     other_rec: AdvancedShowAndSortSettingsType.OTHER_MUTATION,
     other: AdvancedShowAndSortSettingsType.OTHER_MUTATION,
+    fusion: AdvancedShowAndSortSettingsType.FUSION,
 };
-export const AdvancedSettingsTypeToDataValue: Partial<
-    { [type in AdvancedShowAndSortSettingsType]: string }
-> = {
-    [AdvancedShowAndSortSettingsType.AMP]: 'amp',
-    [AdvancedShowAndSortSettingsType.DEL]: 'homdel',
-    [AdvancedShowAndSortSettingsType.GAIN]: 'gain',
-    [AdvancedShowAndSortSettingsType.HETLOSS]: 'hetloss',
-    [AdvancedShowAndSortSettingsType.INFRAME]: 'inframe',
-    [AdvancedShowAndSortSettingsType.MISSENSE]: 'missense',
-    [AdvancedShowAndSortSettingsType.PROMOTER]: 'promoter',
-    [AdvancedShowAndSortSettingsType.TRUNCATING]: 'trunc',
-    [AdvancedShowAndSortSettingsType.OTHER_MUTATION]: 'other',
-};
+
 export const DefaultAdvancedShowAndSortSettings: AdvancedShowAndSortSettings = [
     AdvancedShowAndSortSettingsType.FUSION,
     AdvancedShowAndSortSettingsType.AMP,
@@ -129,13 +123,13 @@ export function getAdvancedSettingsWithSortBy(
 
 export function getSettingVisible(
     setting: AdvancedShowAndSortSettings[0],
-    oncoprint: ResultsViewOncoprint
+    oncoprintSettings: ResultsViewPageStore['oncoprintSettings']
 ) {
     let visible = true;
 
     switch (setting.type) {
         case AdvancedShowAndSortSettingsType.MUTATED:
-            visible = !oncoprint.distinguishMutationType;
+            visible = !oncoprintSettings.distinguishMutationType;
             break;
 
         case AdvancedShowAndSortSettingsType.MISSENSE:
@@ -143,11 +137,11 @@ export function getSettingVisible(
         case AdvancedShowAndSortSettingsType.PROMOTER:
         case AdvancedShowAndSortSettingsType.TRUNCATING:
         case AdvancedShowAndSortSettingsType.OTHER_MUTATION:
-            visible = oncoprint.distinguishMutationType;
+            visible = oncoprintSettings.distinguishMutationType;
             break;
 
         case AdvancedShowAndSortSettingsType.GERMLINE:
-            visible = oncoprint.distinguishGermlineMutations;
+            visible = oncoprintSettings.distinguishGermlineMutations;
             break;
     }
     return visible;
@@ -156,7 +150,7 @@ export function getSettingVisible(
 export function getMutatedSortBy(
     settingsMap: Partial<
         {
-            [type in AdvancedShowAndSortSettingsType]: AdvancedShowAndSortSettingsWithSortBy[0]
+            [type in AdvancedShowAndSortSettingsType]: AdvancedShowAndSortSettingsWithSortBy[0];
         }
     >
 ) {
@@ -185,4 +179,29 @@ export function ifNullThenInfty(x: number | null) {
     } else {
         return x;
     }
+}
+
+export function filterData(
+    data: AnnotatedExtendedAlteration[],
+    settingsMap: Partial<
+        {
+            [type in AdvancedShowAndSortSettingsType]: AdvancedShowAndSortSettings[0]
+        }
+    >
+): AnnotatedExtendedAlteration[] {
+    return data.filter(d => {
+        let keep = true;
+
+        const { molecularAlterationType, value } = getGeneticTrackDatumValue(d);
+        if (
+            value !== null &&
+            value in DataValueToAdvancedSettingsType &&
+            settingsMap[DataValueToAdvancedSettingsType[value]] &&
+            !settingsMap[DataValueToAdvancedSettingsType[value]]!.show
+        ) {
+            return false;
+        }
+
+        return true;
+    });
 }

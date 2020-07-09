@@ -3,6 +3,7 @@ import {
     AnnotatedMutation,
     CaseAggregatedData,
     ExtendedAlteration,
+    AlterationTypeConstants,
 } from '../../../pages/resultsView/ResultsViewPageStore';
 import {
     ClinicalAttribute,
@@ -209,6 +210,44 @@ export function selectDisplayValue(
     }
 }
 
+export function getGeneticTrackDatumValue(
+    event: GeneticTrackDatum_Data
+): {
+    molecularAlterationType: MolecularProfile['molecularAlterationType'];
+    value: string | null;
+} {
+    let molecularAlterationType = event.molecularProfileAlterationType;
+    let value = null;
+
+    switch (event.molecularProfileAlterationType) {
+        case 'COPY_NUMBER_ALTERATION':
+            const cnaEvent =
+                cnaDataToString[
+                    event.value as NumericGeneMolecularData['value']
+                ];
+            value = cnaEvent || null;
+            break;
+        case 'MRNA_EXPRESSION':
+        case 'PROTEIN_LEVEL':
+            value = event.alterationSubType || null;
+            break;
+        case 'MUTATION_EXTENDED':
+            value = getOncoprintMutationType(event as Pick<
+                Mutation,
+                'proteinChange' | 'mutationType'
+            >);
+            if (value === 'fusion') {
+                molecularAlterationType = 'FUSION';
+            } else {
+                if (event.putativeDriver) {
+                    value += '_rec';
+                }
+            }
+            break;
+    }
+    return { molecularAlterationType, value };
+}
+
 export function fillGeneticTrackDatum(
     // must already have all non-disp* fields except trackLabel and data
     newDatum: Partial<GeneticTrackDatum>,
@@ -234,49 +273,41 @@ export function fillGeneticTrackDatum(
     );
 
     for (const event of data) {
-        const molecularAlterationType = event.molecularProfileAlterationType;
+        const { molecularAlterationType, value } = getGeneticTrackDatumValue(
+            event
+        );
         switch (molecularAlterationType) {
             case 'COPY_NUMBER_ALTERATION':
-                const cnaEvent =
-                    cnaDataToString[
-                        event.value as NumericGeneMolecularData['value']
-                    ];
-                if (cnaEvent) {
+                if (value !== null) {
                     // not diploid
-                    dispCnaCounts[cnaEvent] = dispCnaCounts[cnaEvent] || 0;
-                    dispCnaCounts[cnaEvent] += 1;
+                    dispCnaCounts[value] = dispCnaCounts[value] || 0;
+                    dispCnaCounts[value] += 1;
                 }
                 break;
             case 'MRNA_EXPRESSION':
-                if (event.alterationSubType) {
-                    const mrnaEvent = event.alterationSubType;
-                    dispMrnaCounts[mrnaEvent] = dispMrnaCounts[mrnaEvent] || 0;
-                    dispMrnaCounts[mrnaEvent] += 1;
+                if (value !== null) {
+                    dispMrnaCounts[value] = dispMrnaCounts[value] || 0;
+                    dispMrnaCounts[value] += 1;
                 }
                 break;
             case 'PROTEIN_LEVEL':
-                if (event.alterationSubType) {
-                    const protEvent = event.alterationSubType;
-                    dispProtCounts[protEvent] = dispProtCounts[protEvent] || 0;
-                    dispProtCounts[protEvent] += 1;
+                if (value !== null) {
+                    dispProtCounts[value] = dispProtCounts[value] || 0;
+                    dispProtCounts[value] += 1;
                 }
                 break;
             case 'MUTATION_EXTENDED':
-                let oncoprintMutationType = getOncoprintMutationType(
-                    event as Pick<Mutation, 'proteinChange' | 'mutationType'>
-                );
-                if (oncoprintMutationType === 'fusion') {
-                    dispFusion = true;
-                } else {
-                    if (event.putativeDriver) {
-                        oncoprintMutationType += '_rec';
-                    }
-                    dispGermline[oncoprintMutationType] =
-                        dispGermline[oncoprintMutationType] ||
+                if (value !== null) {
+                    dispGermline[value] =
+                        dispGermline[value] ||
                         caseInsensitiveGermlineMatch.test(event.mutationStatus);
-                    dispMutCounts[oncoprintMutationType] =
-                        dispMutCounts[oncoprintMutationType] || 0;
-                    dispMutCounts[oncoprintMutationType] += 1;
+                    dispMutCounts[value] = dispMutCounts[value] || 0;
+                    dispMutCounts[value] += 1;
+                }
+                break;
+            case 'FUSION':
+                if (value !== null) {
+                    dispFusion = true;
                 }
                 break;
         }
@@ -383,6 +414,7 @@ export function makeGeneticTrackData(
 
             let sampleData =
                 caseAggregatedAlterationData[sample.uniqueSampleKey];
+
             ret.push(
                 fillGeneticTrackDatum(
                     newDatum,

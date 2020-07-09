@@ -120,25 +120,23 @@ export default class ResultsViewPathwayMapper extends React.Component<
     @computed get alterationFrequencyDataForQueryGenes() {
         const alterationFrequencyData: ICBioData[] = [];
 
-        this.props.store.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine.result!.forEach(
-            alterationData => {
-                const data = getAlterationData(
-                    this.props.store.samples.result,
-                    this.props.store.patients.result,
-                    this.props.store.coverageInformation.result,
-                    this.props.store.sequencedSampleKeysByGene.result!,
-                    this.props.store.sequencedPatientKeysByGene.result!,
-                    this.props.store.selectedMolecularProfiles.result!,
-                    alterationData,
-                    true,
-                    this.props.store.genes.result!
-                );
+        this.props.store.dataForOncoprint.result!.forEach(alterationData => {
+            const data = getAlterationData(
+                this.props.store.samples.result,
+                this.props.store.patients.result,
+                this.props.store.coverageInformation.result,
+                this.props.store.sequencedSampleKeysByGene.result!,
+                this.props.store.sequencedPatientKeysByGene.result!,
+                this.props.store.selectedMolecularProfiles.result!,
+                alterationData,
+                true,
+                this.props.store.genes.result!
+            );
 
-                if (data) {
-                    alterationFrequencyData.push(data);
-                }
+            if (data) {
+                alterationFrequencyData.push(data);
             }
-        );
+        });
 
         return alterationFrequencyData;
     }
@@ -147,7 +145,7 @@ export default class ResultsViewPathwayMapper extends React.Component<
         const alterationFrequencyDataForNewGenes: ICBioData[] = [];
 
         if (this.isNewStoreReady) {
-            this.storeForAllData!.oqlFilteredCaseAggregatedDataByUnflattenedOQLLine.result!.forEach(
+            this.storeForAllData!.dataForOncoprint.result!.forEach(
                 alterationData => {
                     const data = getAlterationData(
                         this.storeForAllData!.samples.result,
@@ -182,8 +180,7 @@ export default class ResultsViewPathwayMapper extends React.Component<
     @computed get isNewStoreReady() {
         return (
             this.storeForAllData &&
-            this.storeForAllData
-                .oqlFilteredCaseAggregatedDataByUnflattenedOQLLine.isComplete &&
+            this.storeForAllData.dataForOncoprint.isComplete &&
             this.storeForAllData.samples.isComplete &&
             this.storeForAllData.patients.isComplete &&
             this.storeForAllData.coverageInformation.isComplete &&

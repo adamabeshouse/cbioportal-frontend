@@ -18,13 +18,14 @@ import {
     getSettingVisible,
 } from 'shared/components/oncoprint/AdvancedSettingsUtils';
 import ResultsViewOncoprint from 'shared/components/oncoprint/ResultsViewOncoprint';
+import { ResultsViewPageStore } from 'pages/resultsView/ResultsViewPageStore';
 
 export interface IAdvancedSettingsSelectorProps {
     settings: AdvancedShowAndSortSettings;
     show: boolean;
     onHide: () => void;
     updateSettings: (settings: AdvancedShowAndSortSettings) => void;
-    oncoprint: ResultsViewOncoprint;
+    store: ResultsViewPageStore;
 }
 
 const headers = [
@@ -68,7 +69,12 @@ export default class AdvancedSettingsSelector extends React.Component<
 
         return this.workingSettings.reduce(
             (rows, setting, index) => {
-                if (!getSettingVisible(setting, this.props.oncoprint)) {
+                if (
+                    !getSettingVisible(
+                        setting,
+                        this.props.store.oncoprintSettings
+                    )
+                ) {
                     return rows;
                 }
 
