@@ -42,7 +42,7 @@ import {
     AdvancedShowAndSortSettingsWithSortByMap,
     DataValueToAdvancedSettingsType,
     getAdvancedSettingsWithSortBy,
-    MutationSettingsTypes,
+    ifNullThenInfty,
 } from 'shared/components/oncoprint/AdvancedSettingsUtils';
 
 const cnaDataToString: { [integerCNA: string]: string | undefined } = {
@@ -53,13 +53,6 @@ const cnaDataToString: { [integerCNA: string]: string | undefined } = {
     '2': 'amp',
 };
 
-function ifNullThenInfty(x: number | null) {
-    if (x === null) {
-        return Number.POSITIVE_INFINITY;
-    } else {
-        return x;
-    }
-}
 export function getMutationAndCNARenderPriority(
     settingsMap: AdvancedShowAndSortSettingsWithSortByMap
 ) {
@@ -73,12 +66,14 @@ export function getMutationAndCNARenderPriority(
     return _.reduce(
         DataValueToAdvancedSettingsType,
         (priorityMap, settingsType, value) => {
-            const vec = [
-                ifNullThenInfty(
-                    settingsMap[settingsType as AdvancedShowAndSortSettingsType]
-                        .sortBy
-                ),
-            ];
+            const setting =
+                settingsMap[settingsType as AdvancedShowAndSortSettingsType];
+            if (!setting) {
+                // no such setting, e.g. not distinguishing mutations
+                // => just move right along
+                return priorityMap;
+            }
+            const vec = [ifNullThenInfty(setting.sortBy)];
             if (driverMutationValues.includes(value)) {
                 vec.push(
                     ifNullThenInfty(
@@ -127,33 +122,6 @@ export function getProteinRenderPriority(
         ],
     };
 }
-const mutRenderPriority = stringListToIndexSet([
-    'trunc_rec',
-    'inframe_rec',
-    'promoter_rec',
-    'missense_rec',
-    'other_rec',
-    'trunc',
-    'inframe',
-    'promoter',
-    'missense',
-    'other',
-]);
-const cnaRenderPriority = {
-    amp: 0,
-    homdel: 0,
-    gain: 1,
-    hetloss: 1,
-};
-const mrnaRenderPriority = {
-    high: 0,
-    low: 0,
-};
-const protRenderPriority = {
-    high: 0,
-    low: 0,
-};
-
 type HeatmapCaseDatum = {
     value: number;
     thresholdType?: '<' | '>';

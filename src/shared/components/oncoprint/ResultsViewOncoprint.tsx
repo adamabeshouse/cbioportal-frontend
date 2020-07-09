@@ -6,7 +6,6 @@ import {
     IObservableObject,
     IReactionDisposer,
     observable,
-    toJS,
 } from 'mobx';
 import {
     capitalize,
@@ -18,7 +17,6 @@ import {
 import Oncoprint, {
     ClinicalTrackSpec,
     GENETIC_TRACK_GROUP_INDEX,
-    GeneticTrackDatum_Data,
     GeneticTrackSpec,
     IHeatmapTrackSpec,
 } from './Oncoprint';
@@ -86,6 +84,7 @@ import { buildCBioPortalPageUrl } from '../../api/urls';
 import AdvancedSettingsSelector from 'pages/resultsView/oncoprint/AdvancedSettingsSelector';
 import {
     AdvancedShowAndSortSettings,
+    AdvancedShowAndSortSettingsType,
     DefaultAdvancedShowAndSortSettings,
 } from './AdvancedSettingsUtils';
 
@@ -138,7 +137,35 @@ export default class ResultsViewOncoprint extends React.Component<
     {}
 > {
     @observable.ref
-    advancedSettings: AdvancedShowAndSortSettings = DefaultAdvancedShowAndSortSettings.slice();
+    private _advancedSettings: AdvancedShowAndSortSettings = DefaultAdvancedShowAndSortSettings.slice();
+    @computed get advancedSettings() {
+        let settingsToFilterOut: AdvancedShowAndSortSettingsType[] = [];
+        if (!this.distinguishDrivers) {
+            settingsToFilterOut.push(
+                AdvancedShowAndSortSettingsType.DRIVER_MUTATION
+            );
+        }
+
+        if (this.distinguishMutationType) {
+            settingsToFilterOut.push(AdvancedShowAndSortSettingsType.MUTATED);
+        } else {
+            settingsToFilterOut.push(
+                AdvancedShowAndSortSettingsType.MISSENSE,
+                AdvancedShowAndSortSettingsType.INFRAME,
+                AdvancedShowAndSortSettingsType.PROMOTER,
+                AdvancedShowAndSortSettingsType.TRUNCATING,
+                AdvancedShowAndSortSettingsType.OTHER_MUTATION
+            );
+        }
+
+        if (!this.distinguishGermlineMutations) {
+            settingsToFilterOut.push(AdvancedShowAndSortSettingsType.GERMLINE);
+        }
+
+        return this._advancedSettings.filter(
+            s => !settingsToFilterOut.includes(s.type)
+        );
+    }
 
     @observable showAdvancedSettingsSelector = false;
 
@@ -151,7 +178,7 @@ export default class ResultsViewOncoprint extends React.Component<
     @autobind
     @action
     private updateAdvancedSettings(settings: AdvancedShowAndSortSettings) {
-        this.advancedSettings = settings;
+        this._advancedSettings = settings;
         this.showAdvancedSettingsSelector = false;
     }
 
@@ -1801,6 +1828,7 @@ export default class ResultsViewOncoprint extends React.Component<
                     show={this.showAdvancedSettingsSelector}
                     onHide={this.toggleAdvancedSettingsSelector}
                     updateSettings={this.updateAdvancedSettings}
+                    oncoprint={this}
                 />
                 <div
                     className={classNames('oncoprintContainer', {

@@ -1,3 +1,5 @@
+import ResultsViewOncoprint from 'shared/components/oncoprint/ResultsViewOncoprint';
+
 export enum AdvancedShowAndSortSettingsType {
     DRIVER_MUTATION = 'Driver Mutation',
 
@@ -24,14 +26,6 @@ export enum AdvancedShowAndSortSettingsType {
 
     GERMLINE = 'Germline',
 }
-
-export const MutationSettingsTypes = [
-    AdvancedShowAndSortSettingsType.MISSENSE,
-    AdvancedShowAndSortSettingsType.INFRAME,
-    AdvancedShowAndSortSettingsType.PROMOTER,
-    AdvancedShowAndSortSettingsType.TRUNCATING,
-    AdvancedShowAndSortSettingsType.OTHER_MUTATION,
-];
 
 export type AdvancedShowAndSortSettings = {
     type: AdvancedShowAndSortSettingsType;
@@ -131,4 +125,64 @@ export function getAdvancedSettingsWithSortBy(
     });
 
     return settingsWithSortBy;
+}
+
+export function getSettingVisible(
+    setting: AdvancedShowAndSortSettings[0],
+    oncoprint: ResultsViewOncoprint
+) {
+    let visible = true;
+
+    switch (setting.type) {
+        case AdvancedShowAndSortSettingsType.MUTATED:
+            visible = !oncoprint.distinguishMutationType;
+            break;
+
+        case AdvancedShowAndSortSettingsType.MISSENSE:
+        case AdvancedShowAndSortSettingsType.INFRAME:
+        case AdvancedShowAndSortSettingsType.PROMOTER:
+        case AdvancedShowAndSortSettingsType.TRUNCATING:
+        case AdvancedShowAndSortSettingsType.OTHER_MUTATION:
+            visible = oncoprint.distinguishMutationType;
+            break;
+
+        case AdvancedShowAndSortSettingsType.GERMLINE:
+            visible = oncoprint.distinguishGermlineMutations;
+            break;
+    }
+    return visible;
+}
+
+export function getMutatedSortBy(
+    settingsMap: Partial<
+        {
+            [type in AdvancedShowAndSortSettingsType]: AdvancedShowAndSortSettingsWithSortBy[0]
+        }
+    >
+) {
+    if (AdvancedShowAndSortSettingsType.MUTATED in settingsMap) {
+        // if not distinguishing mutations, then we simply choose sortBy for MUTATED
+        return ifNullThenInfty(
+            settingsMap[AdvancedShowAndSortSettingsType.MUTATED]!.sortBy
+        );
+    } else {
+        // otherwise, choose the most important sort priority for any mutation
+        return Math.min(
+            ...[
+                AdvancedShowAndSortSettingsType.MISSENSE,
+                AdvancedShowAndSortSettingsType.INFRAME,
+                AdvancedShowAndSortSettingsType.PROMOTER,
+                AdvancedShowAndSortSettingsType.TRUNCATING,
+                AdvancedShowAndSortSettingsType.OTHER_MUTATION,
+            ].map(s => ifNullThenInfty(settingsMap[s]!.sortBy))
+        );
+    }
+}
+
+export function ifNullThenInfty(x: number | null) {
+    if (x === null) {
+        return Number.POSITIVE_INFINITY;
+    } else {
+        return x;
+    }
 }

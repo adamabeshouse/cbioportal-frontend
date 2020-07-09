@@ -6,20 +6,25 @@ import { action, computed, observable, toJS } from 'mobx';
 import autobind from 'autobind-decorator';
 import SimpleDraggableTable, {
     DragHandle,
+    ISimpleDraggableTableProps,
     SortableTr,
 } from 'shared/components/simpleDraggableTable/SimpleDraggableTable';
 import { stringListToIndexSet } from 'cbioportal-frontend-commons';
 import LabeledCheckbox from 'shared/components/labeledCheckbox/LabeledCheckbox';
 import {
     AdvancedShowAndSortSettings,
+    AdvancedShowAndSortSettingsWithSortBy,
     getAdvancedSettingsWithSortBy,
+    getSettingVisible,
 } from 'shared/components/oncoprint/AdvancedSettingsUtils';
+import ResultsViewOncoprint from 'shared/components/oncoprint/ResultsViewOncoprint';
 
-export interface IAdvancedOncoprintSettingsProps {
+export interface IAdvancedSettingsSelectorProps {
     settings: AdvancedShowAndSortSettings;
     show: boolean;
     onHide: () => void;
     updateSettings: (settings: AdvancedShowAndSortSettings) => void;
+    oncoprint: ResultsViewOncoprint;
 }
 
 const headers = [
@@ -29,8 +34,8 @@ const headers = [
     <td>Sort priority</td>,
 ];
 
-function findPreviousNonNullSortBy<T extends { sortBy: number | null }>(
-    settings: T[],
+function findPreviousNonNullSortBy(
+    settings: AdvancedShowAndSortSettingsWithSortBy,
     startIndex: number
 ) {
     for (let i = startIndex - 1; i >= 0; i--) {
@@ -43,7 +48,7 @@ function findPreviousNonNullSortBy<T extends { sortBy: number | null }>(
 
 @observer
 export default class AdvancedSettingsSelector extends React.Component<
-    IAdvancedOncoprintSettingsProps,
+    IAdvancedSettingsSelectorProps,
     {}
 > {
     @observable.deep workingSettings: AdvancedShowAndSortSettings;
@@ -61,63 +66,75 @@ export default class AdvancedSettingsSelector extends React.Component<
             return [];
         }
 
-        return this.workingSettings.map((setting, index) => {
-            const prevNonNull = findPreviousNonNullSortBy(
-                this.workingSettingsWithSortBy,
-                index
-            );
-            const sortable = !setting.disableSort && setting.show;
-            return {
-                uid: setting.type,
-                tr: (
-                    <SortableTr index={index}>
-                        <td style={{ width: 200 }}>{setting.type}</td>
-                        <td style={{ width: 100 }}>
-                            <input
-                                type="checkbox"
-                                checked={setting.show}
-                                onClick={() => {
-                                    setting.show = !setting.show;
-                                }}
-                            />
-                        </td>
-                        <td style={{ width: 100 }}>
-                            <input
-                                type="checkbox"
-                                checked={!setting.disableSort}
-                                onClick={() => {
-                                    setting.disableSort = !setting.disableSort;
-                                }}
-                                disabled={!setting.show}
-                            />
-                        </td>
-                        <td style={{ width: 350 }}>
-                            <DragHandle />
-                            {!sortable
-                                ? '-'
-                                : this.workingSettingsWithSortBy[index].sortBy}
-                            {prevNonNull !== null && sortable && (
-                                <LabeledCheckbox
-                                    checked={setting.sameSortPriorityAsPrevious}
-                                    onChange={() => {
-                                        setting.sameSortPriorityAsPrevious = !setting.sameSortPriorityAsPrevious;
+        return this.workingSettings.reduce(
+            (rows, setting, index) => {
+                if (!getSettingVisible(setting, this.props.oncoprint)) {
+                    return rows;
+                }
+
+                const prevNonNull = findPreviousNonNullSortBy(
+                    this.workingSettingsWithSortBy,
+                    index
+                );
+
+                const sortable = !setting.disableSort && setting.show;
+                rows.push({
+                    uid: setting.type,
+                    tr: (
+                        <SortableTr index={index}>
+                            <td style={{ width: 200 }}>{setting.type}</td>
+                            <td style={{ width: 100 }}>
+                                <input
+                                    type="checkbox"
+                                    checked={setting.show}
+                                    onClick={() => {
+                                        setting.show = !setting.show;
                                     }}
-                                    labelProps={{
-                                        style: {
-                                            display: 'inline-flex',
-                                            marginLeft: 10,
-                                            alignItems: 'center',
-                                        },
+                                />
+                            </td>
+                            <td style={{ width: 100 }}>
+                                <input
+                                    type="checkbox"
+                                    checked={!setting.disableSort}
+                                    onClick={() => {
+                                        setting.disableSort = !setting.disableSort;
                                     }}
-                                >
-                                    Same priority as {prevNonNull.type}
-                                </LabeledCheckbox>
-                            )}
-                        </td>
-                    </SortableTr>
-                ),
-            };
-        });
+                                    disabled={!setting.show}
+                                />
+                            </td>
+                            <td style={{ width: 350 }}>
+                                <DragHandle />
+                                {!sortable
+                                    ? '-'
+                                    : this.workingSettingsWithSortBy[index]
+                                          .sortBy}
+                                {prevNonNull !== null && sortable && (
+                                    <LabeledCheckbox
+                                        checked={
+                                            setting.sameSortPriorityAsPrevious
+                                        }
+                                        onChange={() => {
+                                            setting.sameSortPriorityAsPrevious = !setting.sameSortPriorityAsPrevious;
+                                        }}
+                                        labelProps={{
+                                            style: {
+                                                display: 'inline-flex',
+                                                marginLeft: 10,
+                                                alignItems: 'center',
+                                            },
+                                        }}
+                                    >
+                                        Same priority as {prevNonNull.type}
+                                    </LabeledCheckbox>
+                                )}
+                            </td>
+                        </SortableTr>
+                    ),
+                });
+                return rows;
+            },
+            [] as ISimpleDraggableTableProps['rows']
+        );
     }
 
     @autobind

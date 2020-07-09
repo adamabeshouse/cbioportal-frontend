@@ -8,6 +8,7 @@ import {
     DataValueToAdvancedSettingsType,
     DefaultAdvancedShowAndSortSettings,
     getAdvancedSettingsWithSortBy,
+    getMutatedSortBy,
 } from './AdvancedSettingsUtils';
 
 /**
@@ -40,26 +41,37 @@ export function getGeneticTrackSortComparator(
     );
     const settingsType = AdvancedShowAndSortSettingsType;
 
+    function addNumberToSortVector(x: number | null, vector: number[]) {
+        if (x === null) {
+            vector.push(Number.POSITIVE_INFINITY);
+        } else {
+            vector.push(x);
+        }
+    }
+
     function mandatoryHelper(d: GeneticTrackDatum): number[] {
-        const vector = [];
+        const vector: number[] = [];
 
         // Create vector out of corresponding sort numbers,
         //  then return that vector sorted in ascending order.
 
         // Fusion
         if (d.disp_fusion && settingsMap[settingsType.FUSION].show) {
-            vector.push(settingsMap[settingsType.FUSION].sortBy);
+            addNumberToSortVector(
+                settingsMap[settingsType.FUSION].sortBy,
+                vector
+            );
         } else {
-            vector.push(Number.POSITIVE_INFINITY);
+            addNumberToSortVector(Number.POSITIVE_INFINITY, vector);
         }
 
         // CNA
         const setting =
             settingsMap[DataValueToAdvancedSettingsType[d.disp_cna!]];
         if (setting && setting.show) {
-            vector.push(setting.sortBy);
+            addNumberToSortVector(setting.sortBy, vector);
         } else {
-            vector.push(Number.POSITIVE_INFINITY);
+            addNumberToSortVector(Number.POSITIVE_INFINITY, vector);
         }
 
         if (sortByDrivers && settingsMap[settingsType.DRIVER_MUTATION].show) {
@@ -70,12 +82,13 @@ export function getGeneticTrackSortComparator(
                 case "promoter_rec'":
                 case 'trunc_rec':
                 case 'other_rec':
-                    vector.push(
-                        settingsMap[settingsType.DRIVER_MUTATION].sortBy
+                    addNumberToSortVector(
+                        settingsMap[settingsType.DRIVER_MUTATION].sortBy,
+                        vector
                     );
                     break;
                 default:
-                    vector.push(Number.POSITIVE_INFINITY);
+                    addNumberToSortVector(Number.POSITIVE_INFINITY, vector);
             }
         }
 
@@ -84,23 +97,26 @@ export function getGeneticTrackSortComparator(
             const setting =
                 settingsMap[DataValueToAdvancedSettingsType[d.disp_mut!]];
             if (setting && setting.show) {
-                vector.push(setting.sortBy);
+                addNumberToSortVector(setting.sortBy, vector);
             } else {
-                vector.push(Number.POSITIVE_INFINITY);
+                addNumberToSortVector(Number.POSITIVE_INFINITY, vector);
             }
         } else {
-            if (d.disp_mut && settingsMap[settingsType.MUTATED].show) {
-                vector.push(settingsMap[settingsType.MUTATED].sortBy);
+            if (d.disp_mut) {
+                addNumberToSortVector(getMutatedSortBy(settingsMap), vector);
             } else {
-                vector.push(Number.POSITIVE_INFINITY);
+                addNumberToSortVector(Number.POSITIVE_INFINITY, vector);
             }
         }
 
         // Germline status
         if (d.disp_germ && settingsMap[settingsType.GERMLINE].show) {
-            vector.push(settingsMap[settingsType.GERMLINE].sortBy);
+            addNumberToSortVector(
+                settingsMap[settingsType.GERMLINE].sortBy,
+                vector
+            );
         } else {
-            vector.push(Number.POSITIVE_INFINITY);
+            addNumberToSortVector(Number.POSITIVE_INFINITY, vector);
         }
 
         // Mrna expression
@@ -108,38 +124,50 @@ export function getGeneticTrackSortComparator(
         switch (d.disp_mrna) {
             case 'high':
                 if (settingsMap[settingsType.MRNA_HIGH].show) {
-                    vector.push(settingsMap[settingsType.MRNA_HIGH].sortBy);
+                    addNumberToSortVector(
+                        settingsMap[settingsType.MRNA_HIGH].sortBy,
+                        vector
+                    );
                     mrnaNumberAdded = true;
                 }
                 break;
             case 'low':
                 if (settingsMap[settingsType.MRNA_LOW].show) {
-                    vector.push(settingsMap[settingsType.MRNA_LOW].sortBy);
+                    addNumberToSortVector(
+                        settingsMap[settingsType.MRNA_LOW].sortBy,
+                        vector
+                    );
                     mrnaNumberAdded = true;
                 }
                 break;
         }
         if (!mrnaNumberAdded) {
-            vector.push(Number.POSITIVE_INFINITY);
+            addNumberToSortVector(Number.POSITIVE_INFINITY, vector);
         }
 
         let protNumberAdded = false;
         switch (d.disp_prot) {
             case 'high':
                 if (settingsMap[settingsType.PROTEIN_HIGH].show) {
-                    vector.push(settingsMap[settingsType.PROTEIN_HIGH].sortBy);
+                    addNumberToSortVector(
+                        settingsMap[settingsType.PROTEIN_HIGH].sortBy,
+                        vector
+                    );
                     protNumberAdded = true;
                 }
                 break;
             case 'low':
                 if (settingsMap[settingsType.PROTEIN_LOW].show) {
-                    vector.push(settingsMap[settingsType.PROTEIN_LOW].sortBy);
+                    addNumberToSortVector(
+                        settingsMap[settingsType.PROTEIN_LOW].sortBy,
+                        vector
+                    );
                     protNumberAdded = true;
                 }
                 break;
         }
         if (!protNumberAdded) {
-            vector.push(Number.POSITIVE_INFINITY);
+            addNumberToSortVector(Number.POSITIVE_INFINITY, vector);
         }
 
         return _.sortBy(
