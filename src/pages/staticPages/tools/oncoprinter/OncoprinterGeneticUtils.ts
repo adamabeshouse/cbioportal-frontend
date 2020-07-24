@@ -76,6 +76,7 @@ type OncoprinterGeneticTrackSpec = {
     label: string;
     info: string;
     data: OncoprinterGeneticTrackDatum[];
+    expansionTrackList?: OncoprinterGeneticTrackSpec[];
 };
 
 export type OncoprinterGeneticInputLineType1 = {
@@ -511,9 +512,12 @@ export function getSampleGeneticTrackData(
     excludeGermlineMutations: boolean
 ): {
     [trackName: string]: {
-        sampleId: string;
-        data: OncoprinterGeneticTrackDatum_Data[];
-    }[];
+        hugoGeneSymbols: string[];
+        sampleData: {
+            sampleId: string;
+            data: OncoprinterGeneticTrackDatum_Data[];
+        }[];
+    };
 } {
     const trackToSampleIdToData: {
         [trackName: string]: {
@@ -555,73 +559,163 @@ export function getSampleGeneticTrackData(
         });
     }
 
-    return _.mapValues(trackToSampleIdToData, sampleIdToData =>
-        _.chain(sampleIdToData)
-            .map((data, sampleId) => ({ sampleId, data }))
-            .value()
-    );
+    return _.mapValues(trackToSampleIdToData, sampleIdToData => {
+        const sampleData = _.map(sampleIdToData, (data, sampleId) => ({
+            sampleId,
+            data,
+        }));
+        const hugoGeneSymbols = [];
+        for (const sampleDatum of sampleData) {
+            for (const d of sampleDatum.data) {
+                hugoGeneSymbols.push(d.hugoGeneSymbol);
+            }
+        }
+        return {
+            hugoGeneSymbols: _.uniq(hugoGeneSymbols),
+            sampleData,
+        };
+    });
 }
 
-export function getGeneticOncoprintData(geneToSampleData: {
-    [hugoGeneSymbol: string]: {
-        sampleId: string;
-        data: OncoprinterGeneticTrackDatum_Data[];
-    }[];
-}): { [hugoGeneSymbol: string]: OncoprinterGeneticTrackDatum[] } {
-    return _.mapValues(geneToSampleData, (sampleData, gene) =>
-        sampleData.map(
-            o =>
-                fillGeneticTrackDatum(
-                    {
-                        sample: o.sampleId,
-                        patient: o.sampleId,
-                        study_id: '',
-                        uid: o.sampleId,
-                    },
-                    gene,
-                    o.data
-                ) as OncoprinterGeneticTrackDatum
-        )
-    );
+export function getGeneticOncoprintData(trackDataSummary: {
+    [trackName: string]: {
+        hugoGeneSymbols: string[];
+        sampleData: {
+            sampleId: string;
+            data: OncoprinterGeneticTrackDatum_Data[];
+        }[];
+    };
+}): {
+    [trackName: string]: {
+        data: OncoprinterGeneticTrackDatum[];
+        expansionTrackData?: {
+            [expansionTrackName: string]: OncoprinterGeneticTrackDatum[];
+        };
+    };
+} {
+    return _.mapValues(trackDataSummary, (summary, trackName) => {
+        let expansionTrackData = undefined;
+        if (summary.hugoGeneSymbols.length > 1) {
+            // expansion tracks if theres more than one gene
+            expansionTrackData = summary.hugoGeneSymbols.reduce(
+                (dataMap, nextGene) => {
+                    dataMap[nextGene] = summary.sampleData.map(
+                        o =>
+                            fillGeneticTrackDatum(
+                                {
+                                    sample: o.sampleId,
+                                    patient: o.sampleId,
+                                    study_id: '',
+                                    uid: o.sampleId,
+                                },
+                                trackName,
+                                o.data.filter(
+                                    d => d.hugoGeneSymbol === nextGene
+                                )
+                            ) as OncoprinterGeneticTrackDatum
+                    );
+                    return dataMap;
+                },
+                {} as {
+                    [expansionTrackName: string]: OncoprinterGeneticTrackDatum[];
+                }
+            );
+        }
+
+        return {
+            data: summary.sampleData.map(
+                o =>
+                    fillGeneticTrackDatum(
+                        {
+                            sample: o.sampleId,
+                            patient: o.sampleId,
+                            study_id: '',
+                            uid: o.sampleId,
+                        },
+                        trackName,
+                        o.data
+                    ) as OncoprinterGeneticTrackDatum
+            ),
+            expansionTrackData,
+        };
+    });
 }
 
-export function getGeneticTrackKey(hugoGeneSymbol: string) {
-    return `geneticTrack_${hugoGeneSymbol}`;
+export function getGeneticTrackKey(trackName: string) {
+    return `geneticTrack_${trackName}`;
 }
-
 export function getGeneticTracks(
-    geneToOncoprintData: {
-        [hugoGeneSymbol: string]: OncoprinterGeneticTrackDatum[];
+    trackToData: {
+        [trackName: string]: {
+            data: OncoprinterGeneticTrackDatum[];
+            expansionTrackData?: {
+                [expansionTrackName: string]: OncoprinterGeneticTrackDatum[];
+            };
+        };
     },
-    geneOrder?: string[],
+    trackNameOrder?: string[],
     excludedSampleIds?: string[]
-): OncoprinterGeneticTrackSpec[] {
+) {
+    const tracks = getGeneticTracksHelper(
+        _.mapValues(trackToData, o => o.data),
+        excludedSampleIds
+    );
+    // add expansions
+    _.forEach(trackToData, (data, trackName) => {
+        if (data.expansionTrackData) {
+            tracks[trackName].expansionTrackList = _.values(
+                getGeneticTracksHelper(
+                    data.expansionTrackData,
+                    excludedSampleIds
+                )
+            );
+        } else {
+            return data;
+        }
+    });
+    // sort
+    const trackNames = trackNameOrder
+        ? trackNameOrder.filter(trackName => trackName in tracks)
+        : Object.keys(tracks);
+
+    return trackNames.map(trackName => tracks[trackName]);
+}
+
+export function getGeneticTracksHelper(
+    trackToOncoprintData: {
+        [trackName: string]: OncoprinterGeneticTrackDatum[];
+    },
+    excludedSampleIds?: string[]
+): {
+    [trackName: string]: OncoprinterGeneticTrackSpec;
+} {
     // remove excluded sample data
     const excludedSampleIdsMap = _.keyBy(excludedSampleIds || []);
-    geneToOncoprintData = _.mapValues(geneToOncoprintData, data =>
+    trackToOncoprintData = _.mapValues(trackToOncoprintData, data =>
         data.filter(d => !(d.sample in excludedSampleIdsMap))
     );
 
-    const geneToPercentAltered: {
-        [hugoGeneSymbol: string]: string;
-    } = _.mapValues(geneToOncoprintData, getPercentAltered);
-    const genes = geneOrder
-        ? geneOrder.filter(gene => gene in geneToOncoprintData)
-        : Object.keys(geneToOncoprintData);
-    return genes.map(gene => ({
-        key: getGeneticTrackKey(gene),
-        label: gene,
-        info: geneToPercentAltered[gene],
-        data: geneToOncoprintData[gene],
+    const trackToPercentAltered: {
+        [trackName: string]: string;
+    } = _.mapValues(trackToOncoprintData, getPercentAltered);
+
+    return _.mapValues(trackToOncoprintData, (data, trackName) => ({
+        key: getGeneticTrackKey(trackName),
+        label: trackName,
+        info: trackToPercentAltered[trackName],
+        data,
     }));
 }
 
 export function annotateGeneticTrackData(
-    geneToSampleData: {
-        [hugoGeneSymbol: string]: {
-            sampleId: string;
-            data: OncoprinterGeneticTrackDatum_Data[];
-        }[];
+    trackToSummary: {
+        [trackName: string]: {
+            hugoGeneSymbols: string[];
+            sampleData: {
+                sampleId: string;
+                data: OncoprinterGeneticTrackDatum_Data[];
+            }[];
+        };
     },
     promisesMap: {
         oncoKbCna: MobxPromise<IOncoKbData | Error>;
@@ -702,41 +796,45 @@ export function annotateGeneticTrackData(
         };
     }
 
-    return _.mapValues(geneToSampleData, (sampleData, gene) => {
-        return sampleData.map(object => {
-            const newObj = _.clone(object);
-            newObj.data = newObj.data.filter(d => {
-                // clear previous annotations
-                delete d.oncoKbOncogenic;
-                delete d.putativeDriver;
-                // annotate and filter out if necessary
-                switch (d.molecularProfileAlterationType) {
-                    case AlterationTypeConstants.COPY_NUMBER_ALTERATION:
-                        d.oncoKbOncogenic = getOncoKbCnaAnnotation(d);
-                        break;
-                    case AlterationTypeConstants.MUTATION_EXTENDED:
-                        d.oncoKbOncogenic = getOncoKbAnnotation(d);
-                        break;
-                }
-                if (
-                    d.molecularProfileAlterationType ===
-                    AlterationTypeConstants.MUTATION_EXTENDED
-                ) {
-                    // tag mutations as putative driver, and filter them
-                    d.putativeDriver = !!(
-                        d.oncoKbOncogenic ||
-                        (params.useHotspots && d.isHotspot) ||
-                        getCBioAnnotation(d) ||
-                        (params.useCustomBinary &&
-                            d.driverFilter === PUTATIVE_DRIVER)
-                    );
-                    return !excludeVUS || d.putativeDriver;
-                } else {
-                    return true;
-                }
-            });
-            return newObj;
-        }, []);
+    return _.mapValues(trackToSummary, (summary, trackName) => {
+        const { sampleData, ...rest } = summary;
+        return {
+            ...rest,
+            sampleData: sampleData.map(object => {
+                const newObj = _.clone(object);
+                newObj.data = newObj.data.filter(d => {
+                    // clear previous annotations
+                    delete d.oncoKbOncogenic;
+                    delete d.putativeDriver;
+                    // annotate and filter out if necessary
+                    switch (d.molecularProfileAlterationType) {
+                        case AlterationTypeConstants.COPY_NUMBER_ALTERATION:
+                            d.oncoKbOncogenic = getOncoKbCnaAnnotation(d);
+                            break;
+                        case AlterationTypeConstants.MUTATION_EXTENDED:
+                            d.oncoKbOncogenic = getOncoKbAnnotation(d);
+                            break;
+                    }
+                    if (
+                        d.molecularProfileAlterationType ===
+                        AlterationTypeConstants.MUTATION_EXTENDED
+                    ) {
+                        // tag mutations as putative driver, and filter them
+                        d.putativeDriver = !!(
+                            d.oncoKbOncogenic ||
+                            (params.useHotspots && d.isHotspot) ||
+                            getCBioAnnotation(d) ||
+                            (params.useCustomBinary &&
+                                d.driverFilter === PUTATIVE_DRIVER)
+                        );
+                        return !excludeVUS || d.putativeDriver;
+                    } else {
+                        return true;
+                    }
+                });
+                return newObj;
+            }, []),
+        };
     });
 }
 

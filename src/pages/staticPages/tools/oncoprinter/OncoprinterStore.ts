@@ -76,6 +76,7 @@ export default class OncoprinterStore {
     @observable public showUnalteredColumns: boolean = true;
     @observable hideGermlineMutations = false;
     @observable customDriverWarningHidden: boolean;
+    //public expansionsByGeneticTrackKey = observable.map<number[]>();
 
     constructor() {
         this.initialize();
@@ -532,6 +533,7 @@ export default class OncoprinterStore {
         invoke: async () => {
             return _.chain(this.nonAnnotatedGeneticTrackData.result!)
                 .values()
+                .map(o => o.sampleData)
                 .flatten()
                 .map(o => o.data)
                 .flatten()
