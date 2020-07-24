@@ -7,7 +7,7 @@ import { action, computed, observable } from 'mobx';
 import { ButtonGroup, Modal, Radio } from 'react-bootstrap';
 import { CustomChart } from '../../StudyViewPageStore';
 import ErrorBox from '../../../../shared/components/errorBox/ErrorBox';
-import { STUDY_VIEW_CONFIG } from '../../StudyViewConfig';
+import { ChartTypeEnum, STUDY_VIEW_CONFIG } from '../../StudyViewConfig';
 import {
     DEFAULT_GROUP_NAME_WITHOUT_USER_INPUT,
     CodeEnum,
@@ -97,6 +97,10 @@ export default class CustomCaseSelection extends React.Component<
                 this.result.validationResult.error.length === 0
                     ? this.result.groups
                     : [],
+            chartType:
+                this.result.datatype === 'STRING'
+                    ? ChartTypeEnum.PIE_CHART
+                    : ChartTypeEnum.BAR_CHART,
         };
     }
 

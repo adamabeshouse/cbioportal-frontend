@@ -249,6 +249,7 @@ export type CustomChart = {
     name?: string;
     patientAttribute: boolean;
     groups: CustomGroup[];
+    chartType: ChartTypeEnum;
 };
 
 export type GenomicChart = {
@@ -3377,7 +3378,7 @@ export class StudyViewPageStore {
         this._customChartMap.set(uniqueKey, newChart);
         this._chartVisibility.set(uniqueKey, true);
         this._customChartsSelectedCases.set(uniqueKey, allCases);
-        this.chartsType.set(uniqueKey, ChartTypeEnum.PIE_CHART);
+        this.chartsType.set(uniqueKey, ChartTypeEnum.PIE_CHART); // TODO: change here to use bar chart if numerical type
         this.chartsDimension.set(uniqueKey, { w: 1, h: 1 });
 
         // Autoselect the groups
@@ -3873,6 +3874,7 @@ export class StudyViewPageStore {
                         name: chartUserSettings.name,
                         groups: chartUserSettings.groups || [],
                         patientAttribute: chartUserSettings.patientAttribute,
+                        chartType: ChartTypeEnum.PIE_CHART, //(chartUserSettings.chartType as ChartTypeEnum) || ChartTypeEnum.PIE_CHART
                     },
                     chartUserSettings.id,
                     true

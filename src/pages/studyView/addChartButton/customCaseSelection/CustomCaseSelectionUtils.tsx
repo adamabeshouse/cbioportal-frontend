@@ -37,6 +37,7 @@ export type ValidationMessage = {
 
 export type ParseResult = {
     groups: CustomGroup[];
+    datatype: 'STRING' | 'NUMBER';
     validationResult: ValidationResult;
 };
 
@@ -50,7 +51,7 @@ export type InputLine = {
     line: string;
     studyId?: string;
     caseId: string;
-    groupName?: string;
+    value?: string;
 };
 
 export type ValidationResult = {
@@ -58,6 +59,13 @@ export type ValidationResult = {
     warning: ValidationMessage[];
     updatedLines?: InputLine[];
 };
+
+export function getDataType(inputLines: InputLine[]): 'STRING' | 'NUMBER' {
+    const isNumberType = _.every(inputLines, line => {
+        return !isNaN(line.value as any) || line.value === 'NA';
+    });
+    return isNumberType ? 'NUMBER' : 'STRING';
+}
 
 export function getLine(line: string): InputLine {
     let parsedResult: InputLine = {
@@ -72,7 +80,7 @@ export function getLine(line: string): InputLine {
         parsedResult.studyId = content[0];
         const groupInfo = content[1].split(/\s|\t/g);
         if (groupInfo.length > 1) {
-            parsedResult.groupName = groupInfo[1];
+            parsedResult.value = groupInfo[1];
         }
         parsedResult.caseId = groupInfo[0];
     }
@@ -98,7 +106,7 @@ function getUniqueCaseId(studyId: string, caseId: string) {
 }
 
 function getInputLineKey(line: InputLine) {
-    return [line.studyId || '', line.caseId, line.groupName || ''].join('&');
+    return [line.studyId || '', line.caseId, line.value || ''].join('&');
 }
 
 export function validateLines(
@@ -208,9 +216,7 @@ export function validateLines(
         const groupDistribution = _.reduce(
             lines,
             (acc, line) => {
-                let groupName = line.groupName
-                    ? line.groupName
-                    : groupNameDefault;
+                let groupName = line.value || groupNameDefault;
                 if (acc[groupName] === undefined) {
                     acc[groupName] = [];
                 }
@@ -296,7 +302,7 @@ export function getGroups(
             lines,
             (acc, line) => {
                 const groupName =
-                    line.groupName ||
+                    line.value ||
                     (hasGroupName
                         ? DEFAULT_GROUP_NAME_WITH_USER_INPUT
                         : DEFAULT_GROUP_NAME_WITHOUT_USER_INPUT);
@@ -362,15 +368,14 @@ export function parseContent(
         }
     }
 
-    const hasGroupName =
-        _.find(
-            lines,
-            line => line.groupName !== undefined && line.groupName !== ''
-        ) !== undefined;
+    const hasValue =
+        _.find(lines, line => line.value !== undefined && line.value !== '') !==
+        undefined;
     if (validationResult.error.length > 0) {
         return {
             groups: [],
             validationResult: validationResult,
+            datatype: 'STRING',
         };
     } else {
         return {
@@ -379,8 +384,9 @@ export function parseContent(
                 selectedStudies[0],
                 caseType,
                 allSamples,
-                hasGroupName
+                hasValue
             ),
+            datatype: getDataType(lines),
             validationResult: validationResult,
         };
     }
