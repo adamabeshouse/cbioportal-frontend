@@ -21,7 +21,7 @@ type IGVProps = {
 
 export default class IntegrativeGenomicsViewer extends React.Component<
     IGVProps,
-    {}
+    { renderingComplete: boolean }
 > {
     public static defaultProps = {
         genome: 'hg19',
@@ -37,12 +37,21 @@ export default class IntegrativeGenomicsViewer extends React.Component<
 
     constructor(props: IGVProps) {
         super(props);
+        this.state = { renderingComplete: false };
     }
 
     public render() {
         return (
             <div>
-                <div ref={this.igvDivRefHandler} className="igvContainer" />
+                <div
+                    ref={this.igvDivRefHandler}
+                    style={{
+                        minHeight: this.state.renderingComplete
+                            ? undefined
+                            : '100vh',
+                    }}
+                    className="igvContainer"
+                />
             </div>
         );
     }
@@ -78,6 +87,10 @@ export default class IntegrativeGenomicsViewer extends React.Component<
             if (this.props.onRenderingComplete) {
                 this.props.onRenderingComplete();
             }
+            if (this.igvDiv) {
+                $(document).scrollTop($(this.igvDiv).offset()!.top);
+            }
+            this.setState({ renderingComplete: true });
         });
     }
 

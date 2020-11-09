@@ -127,7 +127,9 @@ export default class CNSegments extends React.Component<
                 <div
                     style={
                         this.isHidden || this.hasNoSegmentData
-                            ? { opacity: 0 }
+                            ? {
+                                  opacity: 0,
+                              }
                             : undefined
                     }
                 >
