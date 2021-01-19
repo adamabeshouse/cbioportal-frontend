@@ -38,6 +38,7 @@ import classnames from 'classnames';
 import styles from './styles.module.scss';
 import { openSocialAuthWindow } from 'shared/lib/openSocialAuthWindow';
 import { CustomChart } from 'shared/api/sessionServiceAPI';
+import { Modal } from 'react-bootstrap';
 
 export interface IAddChartTabsProps {
     store: StudyViewPageStore;
@@ -128,14 +129,15 @@ class AddChartTabs extends React.Component<IAddChartTabsProps, {}> {
     }
 
     @computed get getTabsWidth(): number {
-        let widthWithResetButton =
+        return 1000;
+        /*let widthWithResetButton =
             this.tabsWidth +
             (this.showResetButton ? RESET_CHART_BUTTON_WIDTH : 0);
         if (widthWithResetButton > MIN_ADD_CHART_TOOLTIP_WIDTH) {
             return widthWithResetButton;
         } else {
             return MIN_ADD_CHART_TOOLTIP_WIDTH;
-        }
+        }*/
     }
 
     @computed get showResetButton(): boolean {
@@ -817,7 +819,7 @@ export default class AddChartButton extends React.Component<
     IAddChartButtonProps,
     {}
 > {
-    @observable showTooltip = false;
+    @observable showModal = false;
     constructor(props: IAddChartButtonProps) {
         super(props);
         makeObservable(this);
@@ -835,64 +837,63 @@ export default class AddChartButton extends React.Component<
 
     render() {
         return (
-            <DefaultTooltip
-                visible={
-                    this.showTooltip ||
-                    this.props.store.showCustomDataSelectionUI
-                }
-                onVisibleChange={visible => {
-                    if (!this.props.isShareLinkModalVisible) {
-                        this.showTooltip = !this.tabsLoading && !!visible;
-                        this.props.store.showCustomDataSelectionUI = false;
-                        if (!visible) {
-                            this.props.store.deleteMarkedCustomData();
-                        }
-                    }
-                }}
-                trigger={['click']}
-                placement={'bottomRight'}
-                destroyTooltipOnHide={false}
-                getTooltipContainer={() =>
-                    document.getElementById('comparisonGroupManagerContainer')!
-                }
-                overlay={() => (
-                    <AddChartTabs
-                        store={this.props.store}
-                        defaultActiveTab={this.props.defaultActiveTab}
-                        currentTab={this.props.currentTab}
-                        disableGenomicTab={this.props.disableGenomicTab}
-                        disableGeneSpecificTab={
-                            this.props.disableGeneSpecificTab
-                        }
-                        disableGenericAssayTabs={
-                            this.props.disableGenericAssayTabs
-                        }
-                        disableCustomTab={this.props.disableCustomTab}
-                        showResetPopup={this.props.showResetPopup}
-                        openShareCustomDataUrlModal={
-                            this.props.openShareCustomDataUrlModal
-                        }
-                    />
-                )}
-                overlayClassName={this.props.addChartOverlayClassName}
-            >
+            <>
                 <button
                     className={classNames('btn btn-primary btn-sm', {
-                        active: this.showTooltip,
+                        active: this.showModal,
                         disabled: this.tabsLoading,
                     })}
                     style={{ marginLeft: 10 }}
-                    aria-pressed={this.showTooltip}
+                    aria-pressed={this.showModal}
                     data-event={serializeEvent({
                         category: 'studyPage',
                         action: 'addChartMenuOpen',
                         label: this.props.store.studyIds.join(','),
                     })}
                     data-test="add-charts-button"
+                    onClick={() => {
+                        this.showModal = !this.showModal;
+                    }}
                 >
                     {this.props.buttonText}
                 </button>
-            </DefaultTooltip>
+                <Modal
+                    show={
+                        this.showModal ||
+                        this.props.store.showCustomDataSelectionUI
+                    }
+                    onHide={() => {
+                        if (!this.props.isShareLinkModalVisible) {
+                            this.showModal = false;
+                            this.props.store.showCustomDataSelectionUI = false;
+                            this.props.store.deleteMarkedCustomData();
+                        }
+                    }}
+                >
+                    <Modal.Header closeButton>
+                        <Modal.Title>Add Charts</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className={this.props.addChartOverlayClassName}>
+                        <AddChartTabs
+                            store={this.props.store}
+                            defaultActiveTab={this.props.defaultActiveTab}
+                            currentTab={this.props.currentTab}
+                            disableGenomicTab={this.props.disableGenomicTab}
+                            disableGeneSpecificTab={
+                                this.props.disableGeneSpecificTab
+                            }
+                            disableGenericAssayTabs={
+                                this.props.disableGenericAssayTabs
+                            }
+                            disableCustomTab={this.props.disableCustomTab}
+                            showResetPopup={this.props.showResetPopup}
+                            openShareCustomDataUrlModal={
+                                this.props.openShareCustomDataUrlModal
+                            }
+                        />
+                    </Modal.Body>
+                </Modal>
+            </>
         );
     }
 }
